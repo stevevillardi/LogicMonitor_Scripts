@@ -5,7 +5,7 @@
   <errmsg>OK</errmsg>
   <interval>0</interval>
     <entry type="predatasource">
-        <version>1617224275</version>
+        <version>1617225700</version>
         <name>Selenium_Template</name>
         <displayedas>Selenium: Template</displayedas>
         <description></description>
@@ -45,15 +45,28 @@ import org.openqa.selenium.remote.*;
 import org.openqa.selenium.support.ui.*;
 import org.openqa.selenium.*;
 
+//Platform info to know which directory to use when setting up chrome/driver
+platform = hostProps.get(&#34;system.collectorplatform&#34;)
+chrome_driver_path = &#34;&#34;
+chrome_broswer_path = &#34;&#34;
+
 //If you need to pass any props from your resource, do so here
 username = hostProps.get(&#34;prop.username&#34;)
 password = hostProps.get(&#34;prop.password&#34;)
 
+//Set Chromedriver and Browser path based on OS type
+if(platform == &#34;windows&#34;){
+    chrome_driver_path = &#34;C:\\Program Files (x86)\\Google\\Chrome\\Application\\chromedriver.exe&#34;
+    chrome_broswer_path = &#34;C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe&#34;
+}
+else{
+    chrome_driver_path = &#34;/usr/bin/chromedriver&#34;
+    chrome_broswer_path = &#34;/usr/bin/google-chrome&#34;
+}
+
 //Sets the chromedriver to use for testing
-System.setProperty(
-    &#34;webdriver.chrome.driver&#34;, 
-    &#34;C:\\Program Files (x86)\\Google\\Chrome\\Application\\chromedriver.exe&#34;);
-    
+System.setProperty(&#34;webdriver.chrome.driver&#34;, chrome_driver_path);
+
 //Creates a new set of ChromeLaunch options, such as igonito mode, headless etc
 ChromeOptions options = new ChromeOptions();
 options.addArguments(
@@ -61,8 +74,8 @@ options.addArguments(
     &#34;--disable-infobars&#34;,
     &#34;--disable-dev-shm-usage&#34;,
     &#34;--incognito&#34;);
-//Set the version of chrome to use to run the test
-options.setBinary(&#34;C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe&#34;);
+//Set the path of chrome to use to run the test
+options.setBinary(chrome_broswer_path);
 
 //Create new webdriver based on our set options above
 WebDriver driver = new ChromeDriver(options);
