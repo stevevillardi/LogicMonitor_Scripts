@@ -48,7 +48,8 @@ Run through the following steps to manually prepare your collector to run Seleni
 3. Name your project
 4. Set the base url for your synthetic test
 5. Record your test and click on `stop recording` once completed, give your test a name
-6. Replay your test from the IDE window and verify it operates as expected, make any adjustments needed until satisfied
+6. Optionally add in some assert statements or other non recorded steps required for testing
+7. Replay your test from the IDE window and verify it operates as expected, make any adjustments/cleanup needed until satisfied
 
 ### Step 5: Export Selenium Project to Java
 
@@ -57,7 +58,7 @@ Run through the following steps to manually prepare your collector to run Seleni
 
 ### Step 6: Import Selenium Datasource Template
 
-1. Grab the selenium datasource template from GitHub or SalesDemo:
+1. Grab the selenium datasource template from GitHub:
    - https://github.com/stevevillardi/LogicMonitor_Scripts/blob/main/Selenium_Template.xml
 2. Import the Selenium_Template.xml into LM portal
 3. Open the Selenium Recording Java file and copy the content starting with driver.get("url") to the end of the function and paste it into the try block in the datasource groovy script area
