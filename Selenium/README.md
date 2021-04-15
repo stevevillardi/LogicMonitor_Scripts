@@ -22,7 +22,7 @@ Run the following commands from a Linux to automatically prepare your collector 
 curl -L "https://raw.githubusercontent.com/stevevillardi/LogicMonitor_Scripts/main/Selenium/logicmonitor_install_selenium_debian.sh" | sh
 ```
 
-### Step 2b: Manual Collector Setup (Windows and Linux)
+#### Step 2b: Manual Collector Setup (Windows and Linux)
 
 Run through the following steps to manually prepare your collector to run Selenium, skip this step if using automatic configuration scripts:
 
@@ -60,7 +60,12 @@ Run through the following steps to manually prepare your collector to run Seleni
 1. Grab the selenium datasource template from GitHub or SalesDemo:
    - https://github.com/stevevillardi/LogicMonitor_Scripts/blob/main/Selenium_Template.xml
 2. Import the Selenium_Template.xml into LM portal
+3. Open the Selenium Recording Java file and copy the content starting with driver.get("url") to the end of the function and paste it into the try block in the datasource groovy script area
+4. Modify the groovy script with any properties needed and steps you are testing for.
+5. Modify the appliesTo criteria so it applies to the appropriate device and test the script until it works as expected
+6. Optionally alter any graph definitions/datapoints as needed
 
-#### Supporting LM articles:
+#### Supporting articles:
 
 - Adding additional libraries to the LM Collector: https://www.logicmonitor.com/support/terminology-syntax/scripting-support/adding-groovy-libraries
+- Using asserts in groovy: http://grails.asia/groovy-assert-examples
