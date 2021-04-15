@@ -8,7 +8,8 @@
 
 Run the following commands from an administrative PowerShell session to automatically prepare your collector to run Selenium:
 
-```#Download and run directly from PS session
+```powershell
+#Download and run directly from PS session
 Invoke-RestMethod -Uri "https://raw.githubusercontent.com/stevevillardi/LogicMonitor_Scripts/main/Selenium/Install-Selenium.ps1" | Invoke-Expression
 ```
 
@@ -16,7 +17,7 @@ Invoke-RestMethod -Uri "https://raw.githubusercontent.com/stevevillardi/LogicMon
 
 Run the following commands from a Linux to automatically prepare your collector to run Selenium:
 
-```
+```bash
 #Download and run directly from ssh/console session
 curl -L "https://raw.githubusercontent.com/stevevillardi/LogicMonitor_Scripts/main/Selenium/logicmonitor_install_selenium_debian.sh" | sh
 ```
