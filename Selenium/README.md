@@ -7,12 +7,19 @@
 #### Step 2a: Windows Collector Setup (Automatic)
 
 Run the following commands from an administrative PowerShell session to automatically prepare your collector to run Selenium:
-`powershell #Download and run directly from PS session Invoke-RestMethod -Uri "https://raw.githubusercontent.com/stevevillardi/LogicMonitor_Scripts/main/Selenium/Install-Selenium.ps1" | Invoke-Expression `
+
+```#Download and run directly from PS session
+Invoke-RestMethod -Uri "https://raw.githubusercontent.com/stevevillardi/LogicMonitor_Scripts/main/Selenium/Install-Selenium.ps1" | Invoke-Expression
+```
 
 #### Step 2a: Linux Collector Setup (Automatic)
 
 Run the following commands from a Linux to automatically prepare your collector to run Selenium:
-`shell #Download and run directly from ssh/console session curl -L "https://raw.githubusercontent.com/stevevillardi/LogicMonitor_Scripts/main/Selenium/logicmonitor_install_selenium_debian.sh" | sh `
+
+```
+#Download and run directly from ssh/console session
+curl -L "https://raw.githubusercontent.com/stevevillardi/LogicMonitor_Scripts/main/Selenium/logicmonitor_install_selenium_debian.sh" | sh
+```
 
 ### Step 2b: Manual Collector Setup (Windows and Linux)
 
