@@ -56,8 +56,8 @@ password = hostProps.get(&#34;prop.password&#34;)
 
 //Set Chromedriver and Browser path based on OS type
 if(platform == &#34;windows&#34;){
-    chrome_driver_path = &#34;C:\\Program Files (x86)\\Google\\Chrome\\Application\\chromedriver.exe&#34;
-    chrome_broswer_path = &#34;C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe&#34;
+    chrome_driver_path = &#34;C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe&#34;
+    chrome_broswer_path = &#34;C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe&#34;
 }
 else{
     chrome_driver_path = &#34;/usr/bin/chromedriver&#34;
