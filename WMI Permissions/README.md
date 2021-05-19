@@ -61,9 +61,11 @@ Open the Group Policy Management:
 
 ### WMI Namespace
 
-These settings can not be done with a regular GPO. _For a user who is not Admin this step is critical and must be done exactly as instructed below_. If not properly done, login attempts via WMI results in Access Denied. To set these settings via GPO you can use the following PS script (https://github.com/stevevillardi/LogicMonitor_Scripts/blob/main/WMI%20Permissions/Set-WmiNamespaceSecurity.ps1) as a startup script GPO task:
+These settings can not be done with a regular GPO. _For a user who is not Admin this step is critical and must be done exactly as instructed below_. If not properly done, login attempts via WMI results in Access Denied.
 
 ### GPO Startup Script
+
+To set these settings via GPO you can use the following PS script (https://github.com/stevevillardi/LogicMonitor_Scripts/blob/main/WMI%20Permissions/Set-WmiNamespaceSecurity.ps1) as a startup script GPO task:
 
 - Right-click **WMI Access** (the GPO we just created), select **Edit**
 - Go to **Computer Configuration -> Policies -> Windows Settings -> Scripts**
@@ -80,6 +82,8 @@ Set-WmiNamespaceSecurity root/cimv2 add wmiuser MethodExecute,Enable,RemoteAcces
 - Click **Ok** x2
 
 ### Manually
+
+To perform these steps manually on a server to be monitored via LogicMonitor, perform the following steps:
 
 - Write **wmimgmt.msc** in command prompt
 - Right-click **WMI Control**, and select **Properties**
