@@ -59,9 +59,27 @@ Open the Group Policy Management:
 - Select **Allow The Connection**
 - Click **Finish**
 
-## 3 – Rights for WMI namespace
+### WMI Namespace
 
-These settings can not be done with a regular GPO. _For a user who is not Admin this step is critical and must be done exactly as instructed below_. If not properly done, login attempts via WMI results in Access Denied. To set these settings via GPO you can use the following PS script as a startup script GPO task:
+These settings can not be done with a regular GPO. _For a user who is not Admin this step is critical and must be done exactly as instructed below_. If not properly done, login attempts via WMI results in Access Denied. To set these settings via GPO you can use the following PS script (https://github.com/stevevillardi/LogicMonitor_Scripts/blob/main/WMI%20Permissions/Set-WmiNamespaceSecurity.ps1) as a startup script GPO task:
+
+### GPO Startup Script
+
+- Right-click **WMI Access** (the GPO we just created), select **Edit**
+- Go to **Computer Configuration -> Policies -> Windows Settings -> Scripts**
+- In the right pane, click on Startup. Right click on it
+- Choose **Properties**
+- Click **Add**
+- Click **Browse**, navigate to the script **Set-WmiNamesapceSecurity.ps1**
+- Enter the following script parameters:
+
+```powershell
+Set-WmiNamespaceSecurity root/cimv2 add wmiuser MethodExecute,Enable,RemoteAccess,ReadSecurity
+```
+
+- Click **Ok** x2
+
+### Manually
 
 - Write **wmimgmt.msc** in command prompt
 - Right-click **WMI Control**, and select **Properties**
@@ -80,7 +98,7 @@ These settings can not be done with a regular GPO. _For a user who is not Admin 
 
 # Second – Settings done on each machine
 
-## 4 – Verify
+## 3 – Verify
 
 On the machines which are to be monitored by LogicMonitor, make sure that the GPO is applied. To force an update:
 
@@ -90,7 +108,7 @@ On the machines which are to be monitored by LogicMonitor, make sure that the GP
 - Add the machine to LogicMonitor and add the required properties **wmi.user** and **wmi.pass** for **CONTOSO\wmiuser**
 - Verify the discovery result
 
-# 5 – Additional Information
+# 4 – Additional Information
 
 We recommend turning off UAC filtering on the target machines. It can be done by setting a registry key manually or through a GPO.
 UAC can in some cases filter information through WMI so that the information is not as complete as it could be. Usually you do not need to do this step, but if information is missing, do the following on the target machine:
