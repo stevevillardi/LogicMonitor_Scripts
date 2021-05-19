@@ -109,6 +109,7 @@ On the machines which are to be monitored by LogicMonitor, make sure that the GP
 - In a command prompt: type **gpupdate /force**
 - Ensure that the GPO is applied: Enter **gpresult /r**
 - Under **COMPUTER SETTINGS** in the printout, look for **WMI Access** (the GPO we created) under the **Applied Group Policy Objects**. If it is listed there, it means that it is applied to the machine.
+- Restart the target machine if using the WMI startup script to trigger the script execution.
 - Add the machine to LogicMonitor and add the required properties **wmi.user** and **wmi.pass** for **CONTOSO\wmiuser**
 - Verify the discovery result
 
