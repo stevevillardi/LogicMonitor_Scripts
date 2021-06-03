@@ -149,7 +149,7 @@ sc sdshow scmanager > file.txt
 D:(A;;CC;;;AU)(A;;CCLCRPRC;;;IU)(A;;CCLCRPRC;;;SU)(A;;CCLCRPWPRC;;;SY)(A;;KA;;;BA)S:(AU;FA;KA;;;WD)(AU;OIIOFA;GA;;;WD)
 ```
 
-- Copy the section of the SDDL from the exported file.txt that ends in IU (Interactive Users). This section is one complete bracketed clause ie (A;;CCLCRPRC;;;IU). Paste this clause directly after the clause you copied from.
+- Copy the section of the SDDL from the exported file.txt that ends in IU (Interactive Users). This section is one complete bracketed clause ie **(A;;CCLCRPRC;;;IU)**. Paste this clause directly after the clause you copied from.
 - In the new text, replace IU with the user SID of the **wmiuser**
 - The new SDDL should look something like:
 
