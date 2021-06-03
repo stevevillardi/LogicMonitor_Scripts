@@ -46,6 +46,20 @@ Open the Group Policy Management:
 - Click **OK**
 - Click **OK**
 
+### Perfomance Monitor Users and Performance Log Users Groups
+
+- Right-click **WMI Access** (which is the GPO we just created), select Edit
+- Go to Computer **Configuration -> Preferences -> Control Panel Settings -> Local Users and Groups**
+- Right-click **Local Users and Groups**, select **New** -> **Local Group**
+- Leave Action dropdown to **Update** and select **Performance Monitor Users (built-in)** from the Group Name dropdown
+- Click **Add**
+- Click the three **...** to open the search box and enter **wmiuser** and check name to ensure a valid user is specified
+- Click **OK**
+- Make sure the Action is set to **Add to this group**
+- Click **OK**
+- Click **OK**
+- Repeat these steps for the **Performance Log Users (built-in)** local group
+
 ### Firewall
 
 - Right-click **WMI Access** (the GPO we just created), select **Edit**
@@ -113,7 +127,44 @@ On the machines which are to be monitored by LogicMonitor, make sure that the GP
 - Add the machine to LogicMonitor and add the required properties **wmi.user** and **wmi.pass** for **CONTOSO\wmiuser**
 - Verify the discovery result
 
-# 4 – Additional Information
+# 4 - Service Monitoring
+
+Even though we now have access to query WMI and all the namespaces it will still not allow you to query windows service information as that also requires changes to the **Service Control Manager**. In order to succesfully monitor windows services you will need to perform the following steps on the target machines you wish to monitor service status for:
+
+- From a machine with the ActiveDirectory PS module installed run the following command to get the SID value for your **wmiuser** account:
+
+```powershell
+Get-ADUser -Identity 'wmiuser' | select SID
+```
+
+- From the Windows command prompt, run the following command to retrieve the current SDDL for the Services Control Manager. The SDDL is saved in the file called file.txt:
+
+```
+sc sdshow scmanager > file.txt
+```
+
+- The SDDL output looks something like this:
+
+```
+D:(A;;CC;;;AU)(A;;CCLCRPRC;;;IU)(A;;CCLCRPRC;;;SU)(A;;CCLCRPWPRC;;;SY)(A;;KA;;;BA)S:(AU;FA;KA;;;WD)(AU;OIIOFA;GA;;;WD)
+```
+
+- Copy the section of the SDDL from the exported file.txt that ends in IU (Interactive Users). This section is one complete bracketed clause ie (A;;CCLCRPRC;;;IU). Paste this clause directly after the clause you copied from.
+- In the new text, replace IU with the user SID of the **wmiuser**
+- The new SDDL should look something like:
+
+```
+D:(A;;CC;;;AU)(A;;CCLCRPRC;;;IU) (A;;CCLCRPRC;;;S-1-5-21-214A909598-1293495619-13Z157935-75714)(A;;CCLCRPRC;;;SU)(A;;CCLCRPWPRC;;;SY)(A;;KA;;;BA) S:(AU;FA;KA;;;WD)(AU;OIIOFA;GA;;;WD)
+```
+
+- Run the following command with your modified SDDL to update the permissions to include your wmiuser account:
+
+```
+sc sdset scmanager "D:(A;;CC;;;AU)(A;;CCLCRPRC;;;IU) (A;;CCLCRPRC;;;<SID VALUE FOR WMISUER>)(A;;CCLCRPRC;;;SU)(A;;CCLCRPWPRC;;;SY)(A;;KA;;;BA) S:(AU;FA;KA;;;WD)(AU;OIIOFA;GA;;;WD)
+"
+```
+
+# 5 – Additional Information
 
 We recommend turning off UAC filtering on the target machines. It can be done by setting a registry key manually or through a GPO.
 UAC can in some cases filter information through WMI so that the information is not as complete as it could be. Usually you do not need to do this step, but if information is missing, do the following on the target machine:
