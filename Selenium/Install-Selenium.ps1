@@ -3,8 +3,15 @@
 #Make sure collector is installed before proceeding
 $CollectorPath = (Get-ChildItem "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq "LogicMonitor Collector" }).InstallLocation
 If (!$CollectorPath) {
-    Write-Host "[INFO]:LogicMonitor collector not detected, ensure a collector is running on this host"
-    return
+    #Try alternative location
+    $CollectorPath = (Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq "LogicMonitor Collector" }).InstallLocation
+    If (!$CollectorPath) {
+        Write-Host "[INFO]:LogicMonitor collector not detected, ensure a collector is running on this host"
+        return
+    }
+    Else {
+        Write-Host "[INFO]:LogicMonitor collector agent detected at install path :$CollectorPath"
+    }
 }
 Else {
     Write-Host "[INFO]:LogicMonitor collector agent detected at install path :$CollectorPath"

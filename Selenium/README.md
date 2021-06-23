@@ -59,7 +59,7 @@ Run through the following steps to manually prepare your collector to run Seleni
 ### Step 6: Import Selenium Datasource Template
 
 1. Grab the selenium datasource template from GitHub:
-   - https://github.com/stevevillardi/LogicMonitor_Scripts/blob/main/Selenium_Template.xml
+   - https://github.com/stevevillardi/LogicMonitor_Scripts/blob/main/Selenium/Selenium_Template.xml
 2. Import the Selenium_Template.xml into LM portal
 3. Open the Selenium Recording Java file and copy the content starting with driver.get("url") to the end of the function and paste it into the try block in the datasource groovy script area
 4. Modify the groovy script with any properties needed and steps you are testing for.
