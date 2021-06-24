@@ -87,7 +87,7 @@ To set these settings via GPO you can use the following PS script (https://githu
 - Choose **Properties**
 - Click **Add**
 - Click **Browse**, navigate to the script **Set-WmiNamesapceSecurity.ps1**
-- Enter the following script parameters:
+- Enter the following script parameters (replace **wmiuser** with your username):
 
 ```powershell
 Set-WmiNamespaceSecurity root/cimv2 add wmiuser MethodExecute,Enable,RemoteAccess,ReadSecurity
