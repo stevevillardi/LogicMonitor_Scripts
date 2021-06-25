@@ -57,40 +57,40 @@ Else {
 }
 
 #Instal Selenium
-If (!$(Test-Path -Path "$CollectorPath\custom\selenium-server-standalone-3.141.59.jar")) {
+If (!$(Test-Path -Path "$($CollectorPath)custom\selenium-server-standalone-3.141.59.jar")) {
     Write-Host "[INFO]:Downloading Selenium Jar file"
     $SeleniumJar = "selenium-server-standalone-3.141.59.jar"
     Invoke-RestMethod -Method Get -Uri "https://selenium-release.storage.googleapis.com/3.141/selenium-server-standalone-3.141.59.jar" -OutFile $SeleniumJar
     #Check for LogicMonitor directory
-    If ($(Test-Path -Path $CollectorPath) -and !$(Test-Path -Path "$CollectorPath/custom" )) {
+    If ($(Test-Path -Path $CollectorPath) -and !$(Test-Path -Path "$($CollectorPath)custom" )) {
         Write-Host "[INFO]:Creating custom jar folder in LogicMonitor agent directory"
         New-Item -ItemType "Directory" -Path $CollectorPath -Name "custom" | Out-Null
     }
     Move-Item -Path $SeleniumJar -Destination "$CollectorPath/custom" -Force
 }
 Else {
-    Write-Host "[INFO]:Skipping selenium JAR download since a version is already been detected at: C:\Program Files (x86)\LogicMonitor\Agent\custom\selenium-server-standalone-3.141.59.jar"
+    Write-Host "[INFO]:Skipping selenium JAR download since a version is already been detected at: $($CollectorPath)custom\selenium-server-standalone-3.141.59.jar"
 }
 
-If (Get-Content "C:\Program Files (x86)\LogicMonitor\Agent\conf\wrapper.conf" | Select-String -SimpleMatch "selenium") {
+If (Get-Content "$($CollectorPath)conf\wrapper.conf" | Select-String -SimpleMatch "selenium") {
     Write-Host "[INFO]:Selenium already added to configuration, skipping wrapper modificaiton"
 }
 Else {
     Write-Host "[INFO]:Adding selenium jar to collector wrapper configuration"
     #Get total number of jars already loaded
-    [int]$TotalJars = (Get-Content -Path "C:\Program Files (x86)\LogicMonitor\Agent\conf\wrapper.conf" | Select-String -Pattern "wrapper.java.classpath.[0-9]+=../" | Measure-Object -Line).Lines
+    [int]$TotalJars = (Get-Content -Path "$($CollectorPath)conf\wrapper.conf" | Select-String -Pattern "wrapper.java.classpath.[0-9]+=../" | Measure-Object -Line).Lines
     [int]$NewJar = $TotalJars + 1
 
     #Get current conf line for last wrapper entry
-    [int]$CurrentJarLine = (Get-Content -Path "C:\Program Files (x86)\LogicMonitor\Agent\conf\wrapper.conf" | Select-String -Pattern "wrapper.java.classpath.*=." | Select-Object -Last 1 LineNumber, Line).LineNumber
+    [int]$CurrentJarLine = (Get-Content -Path "$($CollectorPath)conf\wrapper.conf" | Select-String -Pattern "wrapper.java.classpath.*=." | Select-Object -Last 1 LineNumber, Line).LineNumber
     [int]$NewJarLine = $CurrentJarLine #Dont need to increase by one since array index starts at 0
 
-    $WrapperConf = Get-Content -Path "C:\Program Files (x86)\LogicMonitor\Agent\conf\wrapper.conf"
+    $WrapperConf = Get-Content -Path "$($CollectorPath)conf\wrapper.conf"
     If (!$WrapperConf[$NewJarLine]) {
         #Only append if new line is empty
         Write-Host "[INFO]:Adding jar export to wrapper config on line $NewJarLine"
         $WrapperConf[$NewJarLine] = "wrapper.java.classpath.$NewJar=../custom/selenium-server-standalone-3.141.59.jar"
-        Set-Content -Path "C:\Program Files (x86)\LogicMonitor\Agent\conf\wrapper.conf" -Value $WrapperConf
+        Set-Content -Path "$($CollectorPath)conf\wrapper.conf" -Value $WrapperConf
 
         #Restart collector to have new config take effect
         Write-Host "[INFO]:Restarting LogicMonitor Agent for changes to take effect"
@@ -105,4 +105,4 @@ Else {
 Write-Host "Selenium Configuration Complete"
 Write-Host "    Google Chrome Version: $ChromeVersion" -ForegroundColor Green
 Write-Host "    Chromedriver File Path: $ChromePath\chromedriver.exe" -ForegroundColor Green
-Write-Host "    Selenium JAR File Path: $CollectorPath\selenium-server-standalone-3.141.59.jar" -ForegroundColor Green
+Write-Host "    Selenium JAR File Path: $CollectorPath\custom\selenium-server-standalone-3.141.59.jar" -ForegroundColor Green
