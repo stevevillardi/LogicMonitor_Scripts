@@ -14,7 +14,7 @@ Output:
 #lmstevenvillardi                   30              16
 ```
 
-#Sort-Object (alias sort)
+# Sort-Object (alias sort)
 
 The `Sort-Object` cmdlet allows you to collect all of the objects returned and then output them in the order you define. For example, using the Property parameter of `Sort-Object`, you can specify one or more properties on the incoming objects from Get-LMDevice to sort by. PowerShell will pass each object to the `Sort-Object` cmdlet and then return them sorted by the value of the property.
 
@@ -44,7 +44,7 @@ Output:
 #72 wmi01.logicmonitor.internal wmi01.logicmonitor.internal             0
 ```
 
-#Group-Object (alias group)
+# Group-Object (alias group)
 
 The `Group-Object` cmdlet displays objects in groups based on the value of a specified property. `Group-Object` returns a table with one row for each property value and a column that displays the number of items with that value.
 
@@ -73,7 +73,7 @@ Output:
 #    3 Windows System Event Log                 ...trimed...
 ```
 
-#Where-Object (alias ?)
+# Where-Object (alias ?)
 
 While the `Select-Object` cmdlet limits the output of specific properties, the Where-Object cmdlet limits the output of entire objects.
 
@@ -93,7 +93,7 @@ Output:
 #39 127.0.0.1    LM-COLL01                            0
 ```
 
-#ForEach-Object (alias %)
+# ForEach-Object (alias %)
 
 As each object is processed via the pipeline, you can take action on each object with a loop. The `ForEach-Object` cmdlet allows you to take action on each object flowing into it. An example would be getting a list of devices that match a specifc criteria and performing some action on them like updating a desciprtion value for a set of devices.
 
