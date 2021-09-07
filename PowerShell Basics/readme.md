@@ -1,6 +1,75 @@
+# Intro to PowerShell
+
+PowerShell is mainly suited for Windows operating system. It is used to automate tasks on windows OS. As PowerShell is built on top of .NET framework, that is why it can perform any task on a windows machine. In 2018 Microsoft released PowerShell Core which allows for PowerShell to run cross-platform on Windows/Linux/MacOS
+
+## Programmming vs Scripting
+
+Python/Groovy are examples of general-purpose programming/scripting languages, whereas PowerShell is a scripting language and an automation tool. The major difference between a programming and scripting language is that a programming language uses a compiler to convert high-level language to machine language, whereas a scripting language uses an interpreter. The compiler compiles the complete code, whereas the interpreter compiles line by line.
+
+Since PowerShell uses an interpreter as opposed to being compiled it makes it ideal for scripting as it allows for testing directly in commandline one line at a time as opposed to ensuring an entire script compiles successfully before even attempting to run.
+
+This makes PowerShell an ideal condidate for automatation and scripting tasks for System Administrators.
+
+# Installing PowerShell Core 7.1
+
+## Windows
+
+Since PowerShell is natively installed on Windows, there is no installation needed to start using PowerShell unless you want to run the latest core version alongside the version Windows ships with (usually 5.1).
+
+Install the latest version of PowerShell Core on Windows:
+
+```powershell
+#Execute the msi file from the Direct Downloads link
+./PowerShell-7.1.4-win-x64.msi
+```
+
+[Direct Download for Windows](https://github.com/PowerShell/PowerShell/releases/download/v7.1.4/PowerShell-7.1.4-win-x64.msi)
+
+## MacOS
+
+If you have brew installed on your mac you can simply run:
+
+```sh
+#Install PowerShell
+brew install --cask powershell
+
+#Start PowerShell
+pwsh
+```
+
+If you do not have brew installed you can download the direct pkg file and instal normally using this link: [Download Powershell Core for MacOS](https://github.com/PowerShell/PowerShell/releases/download/v7.1.4/powershell-7.1.4-osx-x64.pkg)
+
+## Linux
+
+See the PowerShell releases page for the appropirate package for your flavor or linux: [Download PowerShell Core for Linux](https://github.com/PowerShell/PowerShell/releases/tag/v7.1.4)
+
+Example to install for Ubuntu 20.4:
+
+```sh
+#Install download deb file
+sudo dpkg -i powershell_7.1.4-1.ubuntu.20.04_amd64.deb
+sudo apt-get install -f
+
+#Start PowerShell
+pwsh
+```
+
+Example to install for CentOS/RHEL7:
+
+```sh
+# Register the Microsoft RedHat repository
+curl https://packages.microsoft.com/config/rhel/7/prod.repo | sudo tee /etc/yum.repos.d/microsoft.repo
+
+# Install PowerShell
+sudo yum install -y powershell
+
+# Start PowerShell
+pwsh
+```
+
 # PowerShell basics, working with objects
 
-# Select-Object (alias select)
+## Select-Object (alias select)
 
 The `Select-Object` cmdlet "filters" various properties from being returned to the PowerShell pipeline. To "filter” object properties from being returned, you can use the Property parameter and specify a comma-delimited set of one or more properties to return.
 
@@ -14,7 +83,7 @@ Output:
 #lmstevenvillardi                   30              16
 ```
 
-# Sort-Object (alias sort)
+## Sort-Object (alias sort)
 
 The `Sort-Object` cmdlet allows you to collect all of the objects returned and then output them in the order you define. For example, using the Property parameter of `Sort-Object`, you can specify one or more properties on the incoming objects from Get-LMDevice to sort by. PowerShell will pass each object to the `Sort-Object` cmdlet and then return them sorted by the value of the property.
 
@@ -44,7 +113,7 @@ Output:
 #72 wmi01.logicmonitor.internal wmi01.logicmonitor.internal             0
 ```
 
-# Group-Object (alias group)
+## Group-Object (alias group)
 
 The `Group-Object` cmdlet displays objects in groups based on the value of a specified property. `Group-Object` returns a table with one row for each property value and a column that displays the number of items with that value.
 
@@ -73,7 +142,7 @@ Output:
 #    3 Windows System Event Log                 ...trimed...
 ```
 
-# Where-Object (alias ?)
+## Where-Object (alias ?)
 
 While the `Select-Object` cmdlet limits the output of specific properties, the Where-Object cmdlet limits the output of entire objects.
 
@@ -93,7 +162,7 @@ Output:
 #39 127.0.0.1    LM-COLL01                            0
 ```
 
-# ForEach-Object (alias %)
+## ForEach-Object (alias %)
 
 As each object is processed via the pipeline, you can take action on each object with a loop. The `ForEach-Object` cmdlet allows you to take action on each object flowing into it. An example would be getting a list of devices that match a specifc criteria and performing some action on them like updating a desciprtion value for a set of devices.
 
