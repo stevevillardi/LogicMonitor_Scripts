@@ -38,9 +38,9 @@
 - If alert is resolved by the Actions remedaiton plan, the alert clears and not further escalations happen.
 - If alert does not resolve in the time specified in the escalation interval, it is escalted to stage two and the recipients/integrations in stage 2 are notified
 
-## LM Action Service
+## LM Action Service Architecture
 
-- Using a combination of SaaS services in either AWS or Azure, allow a customer to have a UI to generate an authenticated webhook
+- Using a combination of SaaS services in either AWS or Azure, allow a customer to have a web UI to generate an authenticated webhook
 - Requests sent to the webhook trigger a lamda/azure funtion to perform some sort of remediation against the alert information being sent via webhook
 - The execution of the remediation uses the LM debug command API endpoint to execute the remediation plan aginst the collector that is currently assigned to the device generating the alert and the ID of that collector is sent along with the alery payload information
 
