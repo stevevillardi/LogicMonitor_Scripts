@@ -1,0 +1,11 @@
+﻿parent_folder,name,description,properties
+lmstevenvillardi,ACME Corp,Company Root,"snmp.community=public,esx.user=acme\bob,esx.pass=password123"
+ACME Corp,North America,NA Infrastructure,location=US
+North America,Servers,,
+North America,Networking,,
+ACME Corp,APAC,,location=APAC
+APAC,Servers,,
+APAC,Networking,,
+ACME Corp,Cloud,AWS/Azure,
+Cloud,Azure Prod,,
+Cloud,AWS Prod,,

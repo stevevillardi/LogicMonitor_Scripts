@@ -1,4 +1,4 @@
-# Intro to PowerShell
+# Part 1: Intro to PowerShell
 
 PowerShell is mainly suited for Windows operating system. It is used to automate tasks on windows OS. As PowerShell is built on top of .NET framework, that is why it can perform any task on a windows machine. In 2018 Microsoft released PowerShell Core which allows for PowerShell to run cross-platform on Windows/Linux/MacOS
 
