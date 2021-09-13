@@ -73,3 +73,8 @@ foreach($group in $groups){
     New-LMDeviceGroup -Name $group.name -ParentGroupName $group.parent_folder -Description $group.description -properties $properties
 }
 ```
+
+**Table of Contents:**
+[Part 1: Intro to PowerShell](readme.md)
+[Part 2: LogicMonitor PowerShell Module Example Uses](LogicMonitorPS-Examples.md)
+[Part 3: LogicMonitor POV Prepper Utility](POV-Prepper-Utility.md)
