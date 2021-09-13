@@ -178,3 +178,31 @@ Output:
 # 2 127.0.0.1    lmstevenvillardi-wincol01   Updated description
 #39 127.0.0.1    LM-COLL01                   Updated description
 ```
+
+## Format-Table (alias ft)
+
+Sometimes when viewing data that has a bunch of properties its easier to list them out in a table view where you can see the properties that matter most in a consolidate table.
+
+```powershell
+Command: (using default list view)
+Get-LMDevice -Id 83 | Select-Object id,name,displayname,hostGroupIds,preferredCollectorId
+
+Output:
+#id                   : 83
+#name                 : 127.0.0.1
+#displayName          : lmstevenvillardi-wincol02
+#hostGroupIds         : 389,13,373,5
+#preferredCollectorId : 9
+
+Command: (using Format-Table)
+Get-LMDevice -Id 83 | Select-Object id,name,displayname,hostGroupIds,preferredCollectorId | Format-Table
+
+Output:
+#id name      displayName               hostGroupIds preferredCollectorId
+#-- ----      -----------               ------------ --------------------
+#83 127.0.0.1 lmstevenvillardi-wincol02 389,13,373,5                    9
+```
+
+As you can see if you were looking at a bunch of objects you would quickly lose the ability to distinguish what's what when looking at everything in a list but if we use Format-Table we can make the output displayed much easier to read.
+
+**Important Note:** You should only use Format-Table for viewing data written to console output, you should not use Format-Table when storing an object as a variable as you will lose the ability to interact whith it in its orginaly format
