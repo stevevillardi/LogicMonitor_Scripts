@@ -208,6 +208,6 @@ As you can see if you were looking at a bunch of objects you would quickly lose 
 **Important Note:** You should only use Format-Table for viewing data written to console output, you should not use Format-Table when storing an object as a variable as you will lose the ability to interact whith it in its orginaly format
 
 **Table of Contents:**
-[Part 1: Intro to PowerShell](readme.md)
-[Part 2: LogicMonitor PowerShell Module Example Uses](LogicMonitorPS-Examples.md)
+[Part 1: Intro to PowerShell](readme.md)\
+[Part 2: LogicMonitor PowerShell Module Example Uses](LogicMonitorPS-Examples.md)\
 [Part 3: LogicMonitor POV Prepper Utility](POV-Prepper-Utility.md)
