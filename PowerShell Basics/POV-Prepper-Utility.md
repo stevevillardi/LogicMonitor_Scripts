@@ -1,5 +1,10 @@
 # Part 3: LogicMonitor POV Prepper Utility
 
+**Table of Contents:**\
+[Part 1: Intro to PowerShell](readme.md)\
+[Part 2: LogicMonitor PowerShell Module Example Uses](LogicMonitorPS-Examples.md)\
+[Part 3: LogicMonitor POV Prepper Utility](POV-Prepper-Utility.md)
+
 Now that have an understanding of working with the LM PowerShell module and some ways to interact with PS objects, we can turn to looking at some of the utilities included with the PS module.
 
 ## POV Prepper Utility
@@ -25,8 +30,3 @@ When starting a new POV there is often a checklist of items that need to be done
 This utility is an ongoing devlopment. If you have things you would like added to this prep utility let me know (customer image upload, upload additonal datasources/dashboards, etc)
 
 **Notes:** This utility should be ran after the customer has deployed their first collector so we can corectly provision the portal metrics resource
-
-**Table of Contents:**\
-[Part 1: Intro to PowerShell](readme.md)\
-[Part 2: LogicMonitor PowerShell Module Example Uses](LogicMonitorPS-Examples.md)\
-[Part 3: LogicMonitor POV Prepper Utility](POV-Prepper-Utility.md)
