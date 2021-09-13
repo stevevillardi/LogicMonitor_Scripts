@@ -26,7 +26,7 @@ This utility is an ongoing devlopment. If you have things you would like added t
 
 **Notes:** This utility should be ran after the customer has deployed their first collector so we can corectly provision the portal metrics resource
 
-**Table of Contents:**
+**Table of Contents:**\
 [Part 1: Intro to PowerShell](readme.md)\
 [Part 2: LogicMonitor PowerShell Module Example Uses](LogicMonitorPS-Examples.md)\
 [Part 3: LogicMonitor POV Prepper Utility](POV-Prepper-Utility.md)

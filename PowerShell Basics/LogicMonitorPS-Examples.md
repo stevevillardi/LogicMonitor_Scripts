@@ -74,7 +74,7 @@ foreach($group in $groups){
 }
 ```
 
-**Table of Contents:**
+**Table of Contents:**\
 [Part 1: Intro to PowerShell](readme.md)\
 [Part 2: LogicMonitor PowerShell Module Example Uses](LogicMonitorPS-Examples.md)\
 [Part 3: LogicMonitor POV Prepper Utility](POV-Prepper-Utility.md)
