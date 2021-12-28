@@ -96,7 +96,7 @@ If (!$(Test-Path -Path "$DefaultDirectory\chromedriver.exe")) {
     Expand-Archive -Path $ChromeDriverZip -Force
     Remove-Item -Path $ChromeDriverZip -Confirm:$false
     If ($(Test-Path -Path $DefaultDirectory)) {
-        Write-Host "[INFO]: Moving Chromedriver into chrome install directory"
+        Write-Host "[INFO]: Moving Chromedriver into default directory"
         Move-Item -Path "chromedriver_win32\chromedriver.exe" -Destination $DefaultDirectory -Force
         Remove-Item -Path "chromedriver_win32" -Confirm:$false -Force
     }
