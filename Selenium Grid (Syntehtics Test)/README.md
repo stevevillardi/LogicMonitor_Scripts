@@ -8,12 +8,17 @@
 
 #### Step 2a: Windows Selenium GRID Setup (Automatic)
 
-Run the following commands from an administrative PowerShell session to automatically prepare your machine to run Selenium (can be same host as collector):
+Run the following commands from an administrative PowerShell session to automatically prepare your machine to run Selenium GRID (can be same host as collector):
 
 ```powershell
 #Download and run directly from PS session
-Invoke-RestMethod -Uri "TBD" | Invoke-Expression
+Invoke-RestMethod -Uri "https://raw.githubusercontent.com/stevevillardi/LogicMonitor_Scripts/main/Selenium%20Grid%20(Syntehtics%20Test)/Install-SeleniumGrid.ps1" -OutFile Install-SeleniumGrid.ps1
+
+./Install-SeleniumGrid.ps1
 ```
+
+Example Exexcution:
+![Install Screenshot](SeleniumGridInstall.png)
 
 #### Step 2a: Linux/Container Selenium GRID Setup (Automatic)
 
