@@ -18,6 +18,7 @@ Invoke-RestMethod -Uri "https://raw.githubusercontent.com/stevevillardi/LogicMon
 ```
 
 Example Exexcution:
+
 ![Install Screenshot](SeleniumGridInstall.png)
 
 #### Step 2a: Linux/Container Selenium GRID Setup (Automatic)
