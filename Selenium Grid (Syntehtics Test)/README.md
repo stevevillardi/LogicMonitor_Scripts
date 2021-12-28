@@ -1,12 +1,12 @@
 # Selenium Grid Version 4 Installation and Configuration (Using Chrome)
 
-### Step 1: Ensure you have a windows/linux collector deployed to you LogicMonitor Portal
+## Step 1: Ensure you have a windows/linux collector deployed to you LogicMonitor Portal
 
-#### Info: https://www.logicmonitor.com/support/collectors/collector-installation/installing-collectors
+### Info: https://www.logicmonitor.com/support/collectors/collector-installation/installing-collectors
 
-### Step 2: Follow the setup instructions for Windows or Linux depending on your collector OS:
+## Step 2: Follow the setup instructions for Windows or Linux depending on your collector OS:
 
-#### Step 2a: Windows Selenium GRID Setup (Automatic)
+### Step 2a: Windows Selenium GRID Setup (Automatic)
 
 Run the following commands from an administrative PowerShell session to automatically prepare your machine to run Selenium GRID (can be same host as collector):
 
@@ -21,7 +21,7 @@ Example Exexcution:
 
 ![Install Screenshot](SeleniumGridInstall.png)
 
-#### Step 2a: Linux/Container Selenium GRID Setup (Automatic)
+### Step 2a: Linux/Container Selenium GRID Setup (Automatic)
 
 Docker-based deployment is very easy to accomplish. There are docker images available for use in a number of configurations on the Docker Website.
 
@@ -36,7 +36,7 @@ https://hub.docker.com/r/selenium/hub/tags?page=1&ordering=last_updated
 **Selenium GRID Node Docker Image:**
 https://hub.docker.com/r/selenium/node-chrome/tags?page=1&ordering=last_updated
 
-#### Step 2b: Manual Selenium Setup Windows
+### Step 2b: Manual Selenium Setup Windows
 
 Run through the following steps to manually prepare your host to run Selenium, skip this step if using automatic configuration scripts:
 
@@ -62,7 +62,7 @@ Program/Script: C:\LogicMonitor-Selenium\selenium-startup.bat
 Start In: C:\LogicMonitor-Selenium\
 ```
 
-#### Step 2b: Manual Selenium Setup Linux/Containers
+### Step 2b: Manual Selenium Setup Linux/Containers
 
 If you make use of one of the pre-configured Docker images for the Selenium GRID - then no additional configuration for the GRID is needed.
 
@@ -92,11 +92,11 @@ $ docker run -d --net grid --name selenium-chrome -e SE_EVENT_BUS_HOST=selenium-
 $ docker run -d --net grid --name selenium-edge -e SE_EVENT_BUS_HOST=selenium-hub  -e SE_EVENT_BUS_PUBLISH_PORT=4442 -e SE_EVENT_BUS_SUBSCRIBE_PORT=4443 selenium/node-edge:93.0-edgedriver-93.0-grid-4.0.0
 ```
 
-### Step 3: Install the Selenium IDE for Chrome
+## Step 3: Install the Selenium IDE for Chrome
 
 1. Install and activate the chrome extension from the chrome web store: https://chrome.google.com/webstore/detail/selenium-ide/mooikfkahbdckldjjndioackbalphokd?hl=en
 
-### Step 4: Record new Selenium IDE Project
+## Step 4: Record new Selenium IDE Project
 
 1. Click on Selenium extension in Chrome
 2. Click on `Record a new test in a new project`
@@ -106,11 +106,11 @@ $ docker run -d --net grid --name selenium-edge -e SE_EVENT_BUS_HOST=selenium-hu
 6. Optionally add in some assert statements or other non recorded steps required for testing
 7. Replay your test from the IDE window and verify it operates as expected, make any adjustments/cleanup needed until satisfied
 
-### Step 5: Export Selenium Side File
+## Step 5: Export Selenium Side File
 
 1. Click the save button and export your side file to your local machine
 
-### Step 6: Add Selenium GRID URL to collector configuration
+## Step 6: Add Selenium GRID URL to collector configuration
 
 1. Ensure you collector is on EA 30.104 or higher
 2. Edit the collector wrapper.conf configuraiton and set your GRID url:
@@ -123,7 +123,7 @@ synthetics.selenium.environment.grid.url=http://172.31.18.161:4444
 3. Restart collector service
 4. Repeat for other collectors as needed
 
-### Step 7: Create Synthetics Check Resource
+## Step 7: Create Synthetics Check Resource
 
 1. Under the resources tab click Add -> Synthetics Website Test
 2. Enter a name and description for the test
