@@ -70,6 +70,7 @@ If (!$ChromeTest) {
     Write-Host "[INFO]: Running silent install of Chrome"
     Start-Process -FilePath $Installer -Args "/silent /install" -Verb RunAs -Wait
     Remove-Item $Installer -Confirm:$false
+    Write-Host "[INFO]: Latest version of Chrome has been successfully installed."
     $ChromePath = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe').Path
     $ChromeVersion = ((Get-Item (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe').'(Default)').VersionInfo).ProductVersion
 }
