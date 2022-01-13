@@ -1,0 +1,650 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<feed  version="1.0" hasPendingRequests="false" >
+  <company></company>
+  <status>200</status>
+  <errmsg>OK</errmsg>
+  <interval>0</interval>
+    <entry type="predatasource">
+        <version>1642107612</version>
+        <name>WinMemory64_WinRM</name>
+        <displayedas>Memory Stats(WinRM)</displayedas>
+        <description>Windows memory paging statistics via WMI, with thresholds for 64 bit or current OSs</description>
+        <collector>script</collector>
+        <hasMultiInstances>false</hasMultiInstances>
+        <useWildValueAsUniqueIdentifier>false</useWildValueAsUniqueIdentifier>
+        <schedule>120</schedule>
+        <appliesTo>winrm.user &#38;&#38; winrm.pass &#38;&#38; auto.winrm.enabled == &#34;True&#34;</appliesTo>
+        <wildcardauto>false</wildcardauto>
+        <wildcardpersist>false</wildcardpersist>
+        <wildcardlinuxscript></wildcardlinuxscript>
+        <wildcardlinuxcmdline></wildcardlinuxcmdline>
+        <wildcardwinscript></wildcardwinscript>
+        <wildcardwincmdline></wildcardwincmdline>
+        <wildcardgroovyscript></wildcardgroovyscript>
+        <wildcardschedule>1440</wildcardschedule>
+        <wildcarddisable>false</wildcarddisable>
+        <wildcarddeleteinactive>false</wildcarddeleteinactive>
+        <agdmethod>none</agdmethod>
+        <agdparams></agdparams>
+        <group></group>
+        <tags></tags>
+        <technology>WinRM status is determined via the Microsoft_Powershell_WinRM_Info property source. Ensure you have that installed.</technology>
+        <adlist><![CDATA[{"agdmethod":"none","agdparams":"","id":0,"filters":[],"params":{}}]]></adlist>
+        <schemaVersion>2</schemaVersion>
+        <dataSourceType>1</dataSourceType>
+        <attributes>
+        <attribute>
+            <name>scripttype</name>
+            <value>powerShell</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>scriptgroovy</name>
+            <value>&#60;# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #&#62;
+
+#######################      Active Discovery      #########################
+# Purpose:
+# Author:
+#------------------------------------------------------------------------------------------------------------
+# Prerequisites:
+#
+#
+#Requires -Version 3
+#------------------------------------------------------------------------------------------------------------
+# Clears the CLI of any text
+Clear-Host
+# Clears memory of all previous variables
+Remove-Variable * -ErrorAction SilentlyContinue
+#------------------------------------------------------------------------------------------------------------
+# Initialize Variables
+$WinRmUser = &#39;##WINRM.USER##&#39;
+$WinRmPass = &#39;##WINRM.PASS##&#39;
+$Hostname = &#39;##SYSTEM.HOSTNAME##&#39;
+$WinRMHttpPort = &#39;##WINRM.HTTP.PORT##&#39;
+$WinRMHttpsPort = &#39;##WINRM.HTTPS.PORT##&#39;
+$CollectorName = hostname
+
+#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS
+
+
+$WinRMHTTPSEnabled = &#39;##AUTO.WINRM.HTTPS.ENABLED##&#39;
+$WinRMHTTPEnabled = &#39;##AUTO.WINRM.HTTP.ENABLED##&#39;
+
+#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection
+If ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like &#39;*WINRM.HTTPS.PORT*&#39;)) {
+    $WinRMHTTPSPort = &#39;##AUTO.WINRM.HTTPS.PORT##&#39;
+}
+If ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like &#39;*WINRM.HTTP.PORT*&#39;)) {
+    $WinRMHTTPPort = &#39;##AUTO.WINRM.HTTP.PORT##&#39;
+} 
+
+# Resolve hostname IP/Name to FQDN for WinRM over https
+$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname
+
+#Set parameters
+$WSManParams = @{
+    ErrorAction = &#39;SilentlyContinue&#39;
+    Filter = &#39;SELECT * FROM Win32_PerfRawData_PerfOS_Memory&#39;
+    ResourceURI = &#39;wmicimv2/*&#39;
+    Enumerate = $true
+}
+
+#-----Determine the type of query to make-----
+# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank
+If (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like &#39;*WINRM.USER*&#39;) -and ($WinRmPass -like &#39;*WINRM.PASS*&#39;))) {
+    $WSManParams.ComputerName = $Hostname
+} 
+Else {
+    # yes. convert user/password into a credential string
+    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;
+    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;
+    $WSManParams.ComputerName = $Hostname
+    $WSManParams.Authentication = &#39;default&#39;
+    $WSManParams.Credential = $RemoteCredential
+}
+
+#Get configured WinRM HTTPS Port if configured
+If($WinRMHTTPSEnabled -eq $true){
+    $WSManParams.Port = $WinRMHttpsPort
+    $WSManParams.UseSSL = $true
+}
+#Get configured WinRM HTTPS Port if configured
+ElseIf($WinRMHTTPEnabled -eq $true){
+    $WSManParams.Port = $WinRMHttpPort
+    $WSManParams.UseSSL = $false
+}
+
+#WinRM not detected as being configured, quit processing any further
+Else{
+    Write-Host &#34;WinRM is not detected as being enabled, please ensure winRM is configured and try again&#34;
+}
+
+#Attempt to get WMI results over WinRM
+$Result = Get-WSManInstance @WSManParams
+If($Result){
+    Write-Host &#34;AvailableBytes=$($Result.AvailableBytes)&#34;
+    Write-Host &#34;CacheBytes=$($Result.CacheBytes)&#34;
+    Write-Host &#34;CacheFaultsPerSec=$($Result.CacheFaultsPerSec)&#34;
+    Write-Host &#34;DemandZeroFaultsPerSec=$($Result.DemandZeroFaultsPerSec)&#34;
+    Write-Host &#34;FreeSystemPageTableEntries=$($Result.FreeSystemPageTableEntries)&#34;
+    Write-Host &#34;PageReadsPerSec=$($Result.PageReadsPerSec)&#34;
+    Write-Host &#34;PageWritesPerSec=$($Result.PageWritesPerSec)&#34;
+    Write-Host &#34;PoolNonpagedBytes=$($Result.PoolNonpagedBytes)&#34;
+    Write-Host &#34;PoolPagedBytes=$($Result.PoolPagedBytes)&#34;
+    Write-Host &#34;TransitionFaultsPerSec=$($Result.TransitionFaultsPerSec)&#34;
+}
+Exit 0</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>windowsscript</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>linuxscript</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>windowscmdline</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>linuxcmdline</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>properties</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        </attributes>
+        <datapoints>
+        <datapoint>
+            <name>AvailableBytes</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>AvailableBytes</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr>&#60;= 5000000</alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody>The host ##HOST## is now in state ##LEVEL## as it has only##VALUE## bytes available. This is less than the threshold of ##THRESHOLD##.
+This started at  ##START##, and has been in this state for ##DURATION##.
+Check with Process Manager which processes are using the memory.</alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Amount of physical memory in bytes available to processes running on the computer.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>AvailableBytes</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>CacheBytes</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>CacheBytes</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of bytes currently being used by the file system cache. The file system cache is an area of physical memory that stores recently used pages of data for applications.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>CacheBytes</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>CacheFaultsPerSec</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>CacheFaultsPerSec</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of faults which occur when a page sought in the file system cache is not found there and must be retrieved from elsewhere in memory (soft fault) or from disk (hard fault).</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>CacheFaultsPerSec</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>DemandZeroFaultsPerSec</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>DemandZeroFaultsPerSec</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of page faults that require a zeroed page to satisfy the fault. Zeroed pages, pages emptied of previously stored data and filled with zeros, prevent processes from seeing data stored by earlier processes that used the memory space.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>DemandZeroFaultsPerSec</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>FreeSystemPageTableEntries</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>FreeSystemPageTableEntries</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr>&#60;= 8000 5000</alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody>The host ##HOST## is now in state ##LEVEL## as it has ##VALUE## free entries in the Free System Page Table. This is less than the threshold of ##THRESHOLD##.
+This started at  ##START##, and has been in this state for ##DURATION##.
+Exhaustion of these entries can lead to system crashes.</alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>System Page Table Entries map disk and network IO buffers and other kernel resources into virtual memory. If they are low, drivers may fail and the system may crash.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>FreeSystemPageTableEntries</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>PageReadsPerSec</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>PageReadsPerSec</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr>&#62;= 1000</alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody>The host ##HOST## is now in state ##LEVEL## as it has ##VALUE## hard page fault reads per second. This is more than the threshold of ##THRESHOLD##.
+This started at  ##START##, and has been in this state for ##DURATION##.
+Hard page faults occur when a process requires code or data that is not in its working set or elsewhere in physical memory, and must be retrieved from disk. This property was designed as a primary indicator of the kinds of faults that cause system-wide delays.</alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of times the disk was read to resolve hard page faults.  Hard page faults occur when a process requires code or data that is not in its working set or elsewhere in physical memory, and must be retrieved from disk. This property was designed as a primary indicator of the kinds of faults that cause system-wide delays.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>PageReadsPerSec</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>6</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>PageWritesPerSec</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>PageWritesPerSec</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr>&#62;= 2000</alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody>The host ##HOST## is now in state ##LEVEL## as it has ##VALUE## hard page fault writes per second. This is more than the threshold of ##THRESHOLD##.
+This started at  ##START##, and has been in this state for ##DURATION##.
+Number of times pages were written to disk to free up space in physical memory. Pages are written back to disk only if they are changed in physical memory, so they are likely to hold data, not code. A high rate of page output might indicate a memory shortage.</alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of times pages were written to disk to free up space in physical memory. Pages are written back to disk only if they are changed in physical memory, so they are likely to hold data, not code. A high rate of page output might indicate a memory shortage.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>PageWritesPerSec</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>6</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>PoolNonpagedBytes</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>PoolNonpagedBytes</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of bytes in the non-paged pool, an area of physical memory used by the operating system for objects that cannot be written to disk, but must remain in physical memory as long as they are allocated.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>PoolNonpagedBytes</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>PoolPagedBytes</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>PoolPagedBytes</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of bytes in the paged pool, an area of system memory for objects that can be written to disk when they are not being used.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>PoolPagedBytes</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>TransitionFaultsPerSec</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>TransitionFaultsPerSec</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of page faults resolved by recovering pages that were on the modified page list, on the standby list, or being written to disk at the time of the page fault. The pages were recovered without additional disk activity.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>TransitionFaultsPerSec</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        </datapoints>
+        <graphs>
+        <graph>
+            <name>hard_Page_Faults</name>
+            <title>Hard Page Faults</title>
+            <originId></originId>            <verticallabel>Page Faults/sec</verticallabel>
+            <rigid>true</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>3</displayprio>
+            <timescale>1day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>PageReadsPerSec</name>
+            <datapointname>PageReadsPerSec</datapointname>
+            <originId></originId>
+            <cf>2</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>PageWritesPerSec</name>
+            <datapointname>PageWritesPerSec</datapointname>
+            <originId></originId>
+            <cf>2</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>Hard page Faults (Reads)</legend>
+                <color>red</color>
+                <datapointname>PageReadsPerSec</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            <graphdata>
+                <type>1</type>
+                <legend>Writes</legend>
+                <color>orange</color>
+                <datapointname>PageWritesPerSec</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>OSMemory</name>
+            <title>OS Memory Usage (not application)</title>
+            <originId></originId>            <verticallabel>GB</verticallabel>
+            <rigid>true</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>day</timescale>
+            <base1024>true</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>AvailableBytes</name>
+            <datapointname>AvailableBytes</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>CacheBytes</name>
+            <datapointname>CacheBytes</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>PoolNonpagedBytes</name>
+            <datapointname>PoolNonpagedBytes</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>PoolPagedBytes</name>
+            <datapointname>PoolPagedBytes</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+        <graphvirtualdatapoint>
+            <name>AvailableBytesGB</name>
+            <rpn>AvailableBytes/1024/1024/1024</rpn>
+            <originId></originId>
+        </graphvirtualdatapoint>
+        <graphvirtualdatapoint>
+            <name>CacheBytesGB</name>
+            <rpn>CacheBytes/1024/1024/1024</rpn>
+            <originId></originId>
+        </graphvirtualdatapoint>
+        <graphvirtualdatapoint>
+            <name>PoolNonpagedBytesGB</name>
+            <rpn>PoolNonpagedBytes/1024/1024/1024</rpn>
+            <originId></originId>
+        </graphvirtualdatapoint>
+        <graphvirtualdatapoint>
+            <name>PoolPagedBytesGB</name>
+            <rpn>PoolPagedBytes/1024/1024/1024</rpn>
+            <originId></originId>
+        </graphvirtualdatapoint>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>2</type>
+                <legend>Available</legend>
+                <color>green</color>
+                <datapointname>AvailableBytesGB</datapointname>
+                <isvirtualdatapoint>true</isvirtualdatapoint>
+            </graphdata>
+            <graphdata>
+                <type>3</type>
+                <legend>Cache</legend>
+                <color>blue</color>
+                <datapointname>CacheBytesGB</datapointname>
+                <isvirtualdatapoint>true</isvirtualdatapoint>
+            </graphdata>
+            <graphdata>
+                <type>3</type>
+                <legend>PoolNonpaged</legend>
+                <color>lime</color>
+                <datapointname>PoolNonpagedBytesGB</datapointname>
+                <isvirtualdatapoint>true</isvirtualdatapoint>
+            </graphdata>
+            <graphdata>
+                <type>3</type>
+                <legend>PoolPaged</legend>
+                <color>purple</color>
+                <datapointname>PoolPagedBytesGB</datapointname>
+                <isvirtualdatapoint>true</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>PageFaults</name>
+            <title>Paging/Faults</title>
+            <originId></originId>            <verticallabel>per sec</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>3</displayprio>
+            <timescale>day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>CacheFaultsPerSec</name>
+            <datapointname>CacheFaultsPerSec</datapointname>
+            <originId></originId>
+            <cf>2</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>DemandZeroFaultsPerSec</name>
+            <datapointname>DemandZeroFaultsPerSec</datapointname>
+            <originId></originId>
+            <cf>2</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>TransitionFaultsPerSec</name>
+            <datapointname>TransitionFaultsPerSec</datapointname>
+            <originId></originId>
+            <cf>2</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>Cache Faults</legend>
+                <color>purple</color>
+                <datapointname>CacheFaultsPerSec</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            <graphdata>
+                <type>1</type>
+                <legend>Demand Zero Faults</legend>
+                <color>aqua</color>
+                <datapointname>DemandZeroFaultsPerSec</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            <graphdata>
+                <type>1</type>
+                <legend>Transition Faults</legend>
+                <color>green</color>
+                <datapointname>TransitionFaultsPerSec</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        </graphs>
+        <overviewgraphs>
+        </overviewgraphs>
+        <scripts>
+        </scripts>
+    </entry>
+</feed>
