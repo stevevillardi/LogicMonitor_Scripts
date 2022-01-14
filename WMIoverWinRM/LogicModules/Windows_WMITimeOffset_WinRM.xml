@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<feed  version="1.0" hasPendingRequests="false" >
+  <company></company>
+  <status>200</status>
+  <errmsg>OK</errmsg>
+  <interval>0</interval>
+    <entry type="predatasource">
+        <version>1642198176</version>
+        <name>Windows_WMITimeOffset_WinRM</name>
+        <displayedas>Time Offset(WinRM)</displayedas>
+        <description></description>
+        <collector>script</collector>
+        <hasMultiInstances>false</hasMultiInstances>
+        <useWildValueAsUniqueIdentifier>false</useWildValueAsUniqueIdentifier>
+        <schedule>240</schedule>
+        <appliesTo>(winrm.user &#38;&#38; winrm.pass &#38;&#38; auto.winrm.enabled == &#34;True&#34;) &#38;&#38; !(hasCategory(&#34;WSFC_VNN&#34;) || hasCategory(&#34;NLB_VNN&#34;))</appliesTo>
+        <wildcardauto>false</wildcardauto>
+        <wildcardpersist>false</wildcardpersist>
+        <wildcardlinuxscript></wildcardlinuxscript>
+        <wildcardlinuxcmdline></wildcardlinuxcmdline>
+        <wildcardwinscript></wildcardwinscript>
+        <wildcardwincmdline></wildcardwincmdline>
+        <wildcardgroovyscript></wildcardgroovyscript>
+        <wildcardschedule>1440</wildcardschedule>
+        <wildcarddisable>false</wildcarddisable>
+        <wildcarddeleteinactive>false</wildcarddeleteinactive>
+        <agdmethod>none</agdmethod>
+        <agdparams></agdparams>
+        <group></group>
+        <tags></tags>
+        <technology>Shows the time offset of the monitored Windows Server relative to the collector.</technology>
+        <adlist><![CDATA[{"agdmethod":"none","agdparams":"","id":0,"filters":[],"params":{}}]]></adlist>
+        <schemaVersion>2</schemaVersion>
+        <dataSourceType>1</dataSourceType>
+        <attributes>
+        <attribute>
+            <name>scripttype</name>
+            <value>powerShell</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>scriptgroovy</name>
+            <value>&#60;# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #&#62;
+
+#######################      Active Discovery      #########################
+# Purpose:
+# Author:
+#------------------------------------------------------------------------------------------------------------
+# Prerequisites:
+#
+#
+#Requires -Version 3
+#------------------------------------------------------------------------------------------------------------
+# Clears the CLI of any text
+Clear-Host
+# Clears memory of all previous variables
+Remove-Variable * -ErrorAction SilentlyContinue
+#------------------------------------------------------------------------------------------------------------
+# Initialize Variables
+$WinRmUser = &#39;##WINRM.USER##&#39;
+$WinRmPass = &#39;##WINRM.PASS##&#39;
+$Hostname = &#39;##SYSTEM.HOSTNAME##&#39;
+$WinRMHttpPort = &#39;##WINRM.HTTP.PORT##&#39;
+$WinRMHttpsPort = &#39;##WINRM.HTTPS.PORT##&#39;
+$CollectorName = hostname
+
+#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS
+
+
+$WinRMHTTPSEnabled = &#39;##AUTO.WINRM.HTTPS.ENABLED##&#39;
+$WinRMHTTPEnabled = &#39;##AUTO.WINRM.HTTP.ENABLED##&#39;
+
+#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection
+If ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like &#39;*WINRM.HTTPS.PORT*&#39;)) {
+    $WinRMHTTPSPort = &#39;##AUTO.WINRM.HTTPS.PORT##&#39;
+}
+If ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like &#39;*WINRM.HTTP.PORT*&#39;)) {
+    $WinRMHTTPPort = &#39;##AUTO.WINRM.HTTP.PORT##&#39;
+} 
+
+# Resolve hostname IP/Name to FQDN for WinRM over https
+$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname
+
+#Set parameters
+$WSManParams = @{
+    ErrorAction = &#39;SilentlyContinue&#39;
+    Filter = &#39;SELECT * FROM Win32_OperatingSystem&#39;
+    ResourceURI = &#39;wmicimv2/*&#39;
+    Enumerate = $true
+}
+
+#-----Determine the type of query to make-----
+# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank
+If (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like &#39;*WINRM.USER*&#39;) -and ($WinRmPass -like &#39;*WINRM.PASS*&#39;))) {
+    $WSManParams.ComputerName = $Hostname
+} 
+Else {
+    # yes. convert user/password into a credential string
+    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;
+    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;
+    $WSManParams.ComputerName = $Hostname
+    $WSManParams.Authentication = &#39;default&#39;
+    $WSManParams.Credential = $RemoteCredential
+}
+
+#Get configured WinRM HTTPS Port if configured
+If($WinRMHTTPSEnabled -eq $true){
+    $WSManParams.Port = $WinRMHttpsPort
+    $WSManParams.UseSSL = $true
+}
+#Get configured WinRM HTTPS Port if configured
+ElseIf($WinRMHTTPEnabled -eq $true){
+    $WSManParams.Port = $WinRMHttpPort
+    $WSManParams.UseSSL = $false
+}
+#WinRM not detected as being configured, quit processing any further
+Else{
+    Write-Host &#34;WinRM is not detected as being enabled, please ensure winRM is configured and try again&#34;
+    Exit 1
+}
+
+#Attempt to get WMI results over WinRM, use Measure-Command to get query execution time
+$QueryTime = Measure-Command {$Result = Get-WSManInstance @WSManParams}
+If($Result){
+    #Get collector time
+    $CollectorTime = Get-Date
+    #Get remote server time
+    $RemoteTime = Get-Date -Date $Result.LocalDateTime.DateTime
+    #Get difference between both times as an absolute value
+    $TimeDifference =  [Math]::Abs((New-TimeSpan -Start $CollectorTime -End $RemoteTime).Milliseconds) / 1000
+    
+    Write-Host &#34;TimeDifference=$TimeDifference&#34;
+    Write-Host &#34;QueryTime=$($QueryTime.Milliseconds)&#34;
+}
+Exit 0</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>windowsscript</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>linuxscript</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>windowscmdline</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>linuxcmdline</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>properties</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        </attributes>
+        <datapoints>
+        <datapoint>
+            <name>QueryTime</name>
+            <originId>F76Mg5ilRDa3NOSm8LkghA</originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>QueryTime</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Time taken by the WMI query in milliseconds.
+High response times may cause inaccuracy with our time comparison.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>0</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>TimeDifference</name>
+            <originId>6LdXi7P7T2CdN7CXaguOcQ</originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>TimeDifference</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr>&#62; 180</alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody>The system clock of ##HOSTNAME## is now ##VALUE## seconds different from the collector that is monitoring it.
+This started at ##START## - or ##DURATION## ago.
+Check the time on the collector and ##HOSTNAME##. Ideally ensure time is synchronized using Windows Time Services.</alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>The approximate offset of the host time when compared to the collector.
+Small inaccuracies may occur if this value is high or inconsistent due to WMI response and processing time.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>0</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        </datapoints>
+        <graphs>
+        <graph>
+            <name>Time offset between Collector and ##HOST##</name>
+            <title>Time offset between Collector and ##HOST##</title>
+            <originId></originId>            <verticallabel>seconds</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>NaN</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>TimeDifference</name>
+            <datapointname>TimeDifference</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>TimeDifference</legend>
+                <color>orange</color>
+                <datapointname>TimeDifference</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>WMI Latency (High values may decrease measurement accuracy)</name>
+            <title>WMI Latency (High values may decrease measurement accuracy)</title>
+            <originId></originId>            <verticallabel>milliseconds</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>2</displayprio>
+            <timescale>1day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>QueryTime</name>
+            <datapointname>QueryTime</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>2</type>
+                <legend>QueryTime</legend>
+                <color>red1</color>
+                <datapointname>QueryTime</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        </graphs>
+        <overviewgraphs>
+        </overviewgraphs>
+        <scripts>
+        </scripts>
+    </entry>
+</feed>

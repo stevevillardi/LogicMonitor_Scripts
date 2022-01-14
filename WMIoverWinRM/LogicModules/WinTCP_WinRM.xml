@@ -1,0 +1,614 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<feed  version="1.0" hasPendingRequests="false" >
+  <company></company>
+  <status>200</status>
+  <errmsg>OK</errmsg>
+  <interval>0</interval>
+    <entry type="predatasource">
+        <version>1642194548</version>
+        <name>WinTCP_WinRM</name>
+        <displayedas>TCP Stats(WinRM)</displayedas>
+        <description></description>
+        <collector>script</collector>
+        <hasMultiInstances>false</hasMultiInstances>
+        <useWildValueAsUniqueIdentifier>false</useWildValueAsUniqueIdentifier>
+        <schedule>300</schedule>
+        <appliesTo>(winrm.user &#38;&#38; winrm.pass &#38;&#38; auto.winrm.enabled == &#34;True&#34;) &#38;&#38; !(system.sysinfo =~ &#34;XP&#34;)&#38;&#38; !(hasCategory(&#34;WSFC_VNN&#34;) || hasCategory(&#34;NLB_VNN&#34;))</appliesTo>
+        <wildcardauto>false</wildcardauto>
+        <wildcardpersist>false</wildcardpersist>
+        <wildcardlinuxscript></wildcardlinuxscript>
+        <wildcardlinuxcmdline></wildcardlinuxcmdline>
+        <wildcardwinscript></wildcardwinscript>
+        <wildcardwincmdline></wildcardwincmdline>
+        <wildcardgroovyscript></wildcardgroovyscript>
+        <wildcardschedule>1440</wildcardschedule>
+        <wildcarddisable>false</wildcarddisable>
+        <wildcarddeleteinactive>false</wildcarddeleteinactive>
+        <agdmethod>none</agdmethod>
+        <agdparams></agdparams>
+        <group></group>
+        <tags></tags>
+        <technology>TCP stats via WMI over WinRM</technology>
+        <adlist><![CDATA[{"agdmethod":"none","agdparams":"","id":0,"filters":[],"params":{}}]]></adlist>
+        <schemaVersion>2</schemaVersion>
+        <dataSourceType>1</dataSourceType>
+        <attributes>
+        <attribute>
+            <name>scripttype</name>
+            <value>powerShell</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>scriptgroovy</name>
+            <value>&#60;# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #&#62;
+
+#######################      Active Discovery      #########################
+# Purpose:
+# Author:
+#------------------------------------------------------------------------------------------------------------
+# Prerequisites:
+#
+#
+#Requires -Version 3
+#------------------------------------------------------------------------------------------------------------
+# Clears the CLI of any text
+Clear-Host
+# Clears memory of all previous variables
+Remove-Variable * -ErrorAction SilentlyContinue
+#------------------------------------------------------------------------------------------------------------
+# Initialize Variables
+$WinRmUser = &#39;##WINRM.USER##&#39;
+$WinRmPass = &#39;##WINRM.PASS##&#39;
+$Hostname = &#39;##SYSTEM.HOSTNAME##&#39;
+$WinRMHttpPort = &#39;##WINRM.HTTP.PORT##&#39;
+$WinRMHttpsPort = &#39;##WINRM.HTTPS.PORT##&#39;
+$CollectorName = hostname
+
+#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS
+
+
+$WinRMHTTPSEnabled = &#39;##AUTO.WINRM.HTTPS.ENABLED##&#39;
+$WinRMHTTPEnabled = &#39;##AUTO.WINRM.HTTP.ENABLED##&#39;
+
+#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection
+If ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like &#39;*WINRM.HTTPS.PORT*&#39;)) {
+    $WinRMHTTPSPort = &#39;##AUTO.WINRM.HTTPS.PORT##&#39;
+}
+If ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like &#39;*WINRM.HTTP.PORT*&#39;)) {
+    $WinRMHTTPPort = &#39;##AUTO.WINRM.HTTP.PORT##&#39;
+} 
+
+# Resolve hostname IP/Name to FQDN for WinRM over https
+$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname
+
+#Set parameters
+$WSManParams = @{
+    ErrorAction = &#39;SilentlyContinue&#39;
+    Filter = &#39;SELECT * FROM Win32_PerfRawData_Tcpip_TCPv4&#39;
+    ResourceURI = &#39;wmicimv2/*&#39;
+    Enumerate = $true
+}
+
+#-----Determine the type of query to make-----
+# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank
+If (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like &#39;*WINRM.USER*&#39;) -and ($WinRmPass -like &#39;*WINRM.PASS*&#39;))) {
+    $WSManParams.ComputerName = $Hostname
+} 
+Else {
+    # yes. convert user/password into a credential string
+    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;
+    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;
+    $WSManParams.ComputerName = $Hostname
+    $WSManParams.Authentication = &#39;default&#39;
+    $WSManParams.Credential = $RemoteCredential
+}
+
+#Get configured WinRM HTTPS Port if configured
+If($WinRMHTTPSEnabled -eq $true){
+    $WSManParams.Port = $WinRMHttpsPort
+    $WSManParams.UseSSL = $true
+}
+#Get configured WinRM HTTPS Port if configured
+ElseIf($WinRMHTTPEnabled -eq $true){
+    $WSManParams.Port = $WinRMHttpPort
+    $WSManParams.UseSSL = $false
+}
+#WinRM not detected as being configured, quit processing any further
+Else{
+    Write-Host &#34;WinRM is not detected as being enabled, please ensure winRM is configured and try again&#34;
+    Exit 1
+}
+
+#Attempt to get WMI results over WinRM
+$Result = Get-WSManInstance @WSManParams
+If($Result){
+    Write-Host &#34;ConnectionFailures=$($Result.ConnectionFailures)&#34;
+    Write-Host &#34;ConnectionsActive=$($Result.ConnectionsActive)&#34;
+    Write-Host &#34;ConnectionsEstablished=$($Result.ConnectionsEstablished)&#34;
+    Write-Host &#34;ConnectionsPassive=$($Result.ConnectionsPassive)&#34;
+    Write-Host &#34;ConnectionsReset=$($Result.ConnectionsReset)&#34;
+    Write-Host &#34;SegmentsReceivedPerSec=$($Result.SegmentsReceivedPerSec)&#34;
+    Write-Host &#34;SegmentsRetransmittedPerSec=$($Result.SegmentsRetransmittedPerSec)&#34;
+    Write-Host &#34;SegmentsSentPerSec=$($Result.SegmentsSentPerSec)&#34;
+}
+Exit 0</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>windowsscript</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>linuxscript</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>windowscmdline</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>linuxcmdline</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>properties</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        </attributes>
+        <datapoints>
+        <datapoint>
+            <name>ConnectionFailures</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>ConnectionFailures</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr>&#62;= 1</alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody>The host ##HOST## is experiencing an unusual number of failed TCP connections, probably incoming connections.
+There are now ##VALUE## per second failed connections, putting the host in a ##LEVEL## level.
+This started at  ##START##.
+This could be caused by incorrect application backlog parameters, or by incorrect OS TCP listen queue settings.</alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of times TCP connections have made a direct transition to the CLOSED state from the SYN-SENT state or the SYN-RCVD state, plus the number of times TCP connections have made a direct transition from the SYN-RCVD state to the LISTEN state.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>ConnectionFailures</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>ConnectionsActive</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>ConnectionsActive</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of times TCP connections have made a direct transition from the CLOSED state to the SYN-SENT state. (i.e. Connections initiated from local computer.)</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>ConnectionsActive</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>ConnectionsEstablished</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>ConnectionsEstablished</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of TCP connections for which the current state is either ESTABLISHED or CLOSE-WAIT</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>ConnectionsEstablished</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>ConnectionsPassive</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>ConnectionsPassive</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of times TCP connections have made a direct transition from the LISTEN state to the SYN-RCVD state. (i.e. Connections initiated from other computers to this one.)</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>ConnectionsPassive</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>ConnectionsReset</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>ConnectionsReset</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of times TCP connections have made a direct transition to the CLOSED state from either the ESTABLISHED state or the CLOSE-WAIT state</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>ConnectionsReset</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>RetransPercent</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>expression</postprocessormethod>
+            <postprocessorparam>if(gt(SegmentsSentPerSec,50),SegmentsRetransmittedPerSec/(SegmentsSentPerSec+SegmentsRetransmittedPerSec)*100,0)</postprocessorparam>
+            <usevalue></usevalue>
+            <alertexpr>&#62;= 5</alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody>The host ##HOST## is experiencing an unusual number of TCP retransmissions.
+TCP retransmissions are now ##VALUE## percent of all TCP packets, putting the host in a ##LEVEL## level.
+This started at  ##START##.
+This could be caused by poor network performance between this host and its clients/servers, or problems in the end systems.
+Note: Microsoft SQL server keepalives will be reported by the operating system as retransmissions, so may cause an incorrect alert.</alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Percentage of retransmitted TCP packets, if we are doing at least fifty segments per second.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>SegmentsReceivedPerSec</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>SegmentsReceivedPerSec</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Rate at which segments are received, including those received in error. This count includes segments received on currently established connections.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>SegmentsReceivedPerSec</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>SegmentsRetransmittedPerSec</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>SegmentsRetransmittedPerSec</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Rate at which segments are retransmitted, that is, segments transmitted that contain one or more previously transmitted bytes.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>SegmentsRetransmittedPerSec</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>SegmentsSentPerSec</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>SegmentsSentPerSec</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Rate at which segments are sent, including those on current connections, but excluding those containing only retransmitted bytes</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1>SegmentsSentPerSec</userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>4</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        </datapoints>
+        <graphs>
+        <graph>
+            <name>Connections</name>
+            <title>Connections</title>
+            <originId></originId>            <verticallabel>number</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>ConnectionsEstablished</name>
+            <datapointname>ConnectionsEstablished</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>ConnectionsPassive</name>
+            <datapointname>ConnectionsPassive</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>Connections EST or in Close Wait</legend>
+                <color>blue</color>
+                <datapointname>ConnectionsEstablished</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            <graphdata>
+                <type>1</type>
+                <legend>Syns Received on Listening port</legend>
+                <color>purple</color>
+                <datapointname>ConnectionsPassive</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>FailedConnections</name>
+            <title>TCP Failed Connections</title>
+            <originId></originId>            <verticallabel>number</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>ConnectionFailures</name>
+            <datapointname>ConnectionFailures</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>ConnectionsReset</name>
+            <datapointname>ConnectionsReset</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>Connection Failures</legend>
+                <color>red</color>
+                <datapointname>ConnectionFailures</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            <graphdata>
+                <type>1</type>
+                <legend>Connections Reset</legend>
+                <color>blue</color>
+                <datapointname>ConnectionsReset</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>Retransmissions</name>
+            <title>TCP retransmissions</title>
+            <originId></originId>            <verticallabel>%</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>100.0</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>4</displayprio>
+            <timescale>day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>SegmentsRetransmittedPerSec</name>
+            <datapointname>SegmentsRetransmittedPerSec</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>SegmentsSentPerSec</name>
+            <datapointname>SegmentsSentPerSec</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+        <graphvirtualdatapoint>
+            <name>RetransPercent</name>
+            <rpn>SegmentsSentPerSec,1,GT,SegmentsRetransmittedPerSec,SegmentsSentPerSec,/,100,*,0,IF</rpn>
+            <originId></originId>
+        </graphvirtualdatapoint>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>Retransmissions</legend>
+                <color>red</color>
+                <datapointname>RetransPercent</datapointname>
+                <isvirtualdatapoint>true</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>SegmentRate</name>
+            <title>Segments per second</title>
+            <originId></originId>            <verticallabel>segments per second</verticallabel>
+            <rigid>true</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>SegmentsReceivedPerSec</name>
+            <datapointname>SegmentsReceivedPerSec</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>SegmentsRetransmittedPerSec</name>
+            <datapointname>SegmentsRetransmittedPerSec</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+        <graphdatapoint>
+            <name>SegmentsSentPerSec</name>
+            <datapointname>SegmentsSentPerSec</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>Received</legend>
+                <color>blue</color>
+                <datapointname>SegmentsReceivedPerSec</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            <graphdata>
+                <type>1</type>
+                <legend>Retransmissions</legend>
+                <color>red</color>
+                <datapointname>SegmentsRetransmittedPerSec</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            <graphdata>
+                <type>1</type>
+                <legend>Sent</legend>
+                <color>green</color>
+                <datapointname>SegmentsSentPerSec</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        </graphs>
+        <overviewgraphs>
+        </overviewgraphs>
+        <scripts>
+        </scripts>
+    </entry>
+</feed>
