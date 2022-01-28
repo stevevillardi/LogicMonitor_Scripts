@@ -1,0 +1,687 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<feed  version="1.0" hasPendingRequests="false" >
+  <company></company>
+  <status>200</status>
+  <errmsg>OK</errmsg>
+  <interval>0</interval>
+    <entry type="predatasource">
+        <version>1643344354</version>
+        <name>WinProcessStats_WinRM</name>
+        <displayedas>Processes(WinRM)</displayedas>
+        <description>Monitor the resource usage of a process via WinRM/WMI</description>
+        <collector>script</collector>
+        <hasMultiInstances>true</hasMultiInstances>
+        <useWildValueAsUniqueIdentifier>false</useWildValueAsUniqueIdentifier>
+        <schedule>180</schedule>
+        <appliesTo>(winrm.user &#38;&#38; winrm.pass &#38;&#38; auto.winrm.enabled == &#34;True&#34;)</appliesTo>
+        <wildcardauto>true</wildcardauto>
+        <wildcardpersist>false</wildcardpersist>
+        <wildcardlinuxscript>ad_script</wildcardlinuxscript>
+        <wildcardlinuxcmdline>type=&#34;powerShell&#34; </wildcardlinuxcmdline>
+        <wildcardwinscript>ad_script</wildcardwinscript>
+        <wildcardwincmdline>type=&#34;powerShell&#34; </wildcardwincmdline>
+        <wildcardgroovyscript>&#60;# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #&#62;
+
+#######################      Active Discovery      #########################
+# Purpose:
+# Author:
+#------------------------------------------------------------------------------------------------------------
+# Prerequisites:
+#
+#
+#Requires -Version 3
+#------------------------------------------------------------------------------------------------------------
+# Clears the CLI of any text
+Clear-Host
+# Clears memory of all previous variables
+Remove-Variable * -ErrorAction SilentlyContinue
+#------------------------------------------------------------------------------------------------------------
+# Initialize Variables
+$WinRmUser = &#39;##WINRM.USER##&#39;
+$WinRmPass = &#39;##WINRM.PASS##&#39;
+$Hostname = &#39;##SYSTEM.HOSTNAME##&#39;
+$WinRMHttpPort = &#39;##WINRM.HTTP.PORT##&#39;
+$WinRMHttpsPort = &#39;##WINRM.HTTPS.PORT##&#39;
+$CollectorName = hostname
+
+#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS
+
+
+$WinRMHTTPSEnabled = &#39;##AUTO.WINRM.HTTPS.ENABLED##&#39;
+$WinRMHTTPEnabled = &#39;##AUTO.WINRM.HTTP.ENABLED##&#39;
+
+#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection
+If ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like &#39;*WINRM.HTTPS.PORT*&#39;)) {
+    $WinRMHTTPSPort = &#39;##AUTO.WINRM.HTTPS.PORT##&#39;
+}
+If ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like &#39;*WINRM.HTTP.PORT*&#39;)) {
+    $WinRMHTTPPort = &#39;##AUTO.WINRM.HTTP.PORT##&#39;
+} 
+
+# Resolve hostname IP/Name to FQDN for WinRM over https
+$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname
+
+#Set parameters
+$WSManParams = @{
+    ErrorAction = &#39;SilentlyContinue&#39;
+    Filter = &#39;SELECT NAME FROM Win32_PerfRawData_PerfProc_Process&#39;
+    ResourceURI = &#39;wmicimv2/*&#39;
+    Enumerate = $true
+}
+
+#-----Determine the type of query to make-----
+# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank
+If (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like &#39;*WINRM.USER*&#39;) -and ($WinRmPass -like &#39;*WINRM.PASS*&#39;))) {
+    $WSManParams.ComputerName = $Hostname
+} 
+Else {
+    # yes. convert user/password into a credential string
+    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;
+    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;
+    $WSManParams.ComputerName = $Hostname
+    $WSManParams.Authentication = &#39;default&#39;
+    $WSManParams.Credential = $RemoteCredential
+}
+
+#Get configured WinRM HTTPS Port if configured
+If($WinRMHTTPSEnabled -eq $true){
+    $WSManParams.Port = $WinRMHttpsPort
+    $WSManParams.UseSSL = $true
+}
+#Get configured WinRM HTTPS Port if configured
+ElseIf($WinRMHTTPEnabled -eq $true){
+    $WSManParams.Port = $WinRMHttpPort
+    $WSManParams.UseSSL = $false
+}
+#WinRM not detected as being configured, quit processing any further
+Else{
+    Write-Host &#34;WinRM is not detected as being enabled, please ensure winRM is configured and try again&#34;
+    Exit 1
+}
+
+#Attempt to get WMI results over WinRM
+$Result = Get-WSManInstance @WSManParams
+If($Result){
+    Foreach($Item in $Result){
+        $Wildvalue = $Item.Name -replace &#39;[:|\\|\s|=|#]+&#39;,&#39;_&#39;
+        Write-Host &#34;$Wildvalue##$($Item.Name)######auto.process.name=$($Item.Name)&#34;
+    }
+}
+Exit 0</wildcardgroovyscript>
+        <wildcardschedule>60</wildcardschedule>
+        <wildcarddisable>false</wildcarddisable>
+        <wildcarddeleteinactive>false</wildcarddeleteinactive>
+        <agdmethod>none</agdmethod>
+        <agdparams></agdparams>
+        <group></group>
+        <tags></tags>
+        <technology>-Adjust Active Discovery filters based on requirements. By default will not discover any instances.</technology>
+        <adlist><![CDATA[{"agdmethod":"none","method":"ad_script","agdparams":"","id":0,"filters":[{"attribute":"auto.process.name","operation":"Contain","value":"ChangeMe123"}],"params":{"type":"powerShell","groovyscript":"<# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #>\n\n#######################      Active Discovery      #########################\n# Purpose:\n# Author:\n#------------------------------------------------------------------------------------------------------------\n# Prerequisites:\n#\n#\n#Requires -Version 3\n#------------------------------------------------------------------------------------------------------------\n# Clears the CLI of any text\nClear-Host\n# Clears memory of all previous variables\nRemove-Variable * -ErrorAction SilentlyContinue\n#------------------------------------------------------------------------------------------------------------\n# Initialize Variables\n$WinRmUser = '##WINRM.USER##'\n$WinRmPass = '##WINRM.PASS##'\n$Hostname = '##SYSTEM.HOSTNAME##'\n$WinRMHttpPort = '##WINRM.HTTP.PORT##'\n$WinRMHttpsPort = '##WINRM.HTTPS.PORT##'\n$CollectorName = hostname\n\n#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS\n\n\n$WinRMHTTPSEnabled = '##AUTO.WINRM.HTTPS.ENABLED##'\n$WinRMHTTPEnabled = '##AUTO.WINRM.HTTP.ENABLED##'\n\n#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like '*WINRM.HTTPS.PORT*')) {\n    $WinRMHTTPSPort = '##AUTO.WINRM.HTTPS.PORT##'\n}\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like '*WINRM.HTTP.PORT*')) {\n    $WinRMHTTPPort = '##AUTO.WINRM.HTTP.PORT##'\n} \n\n# Resolve hostname IP/Name to FQDN for WinRM over https\n$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname\n\n#Set parameters\n$WSManParams = @{\n    ErrorAction = 'SilentlyContinue'\n    Filter = 'SELECT NAME FROM Win32_PerfRawData_PerfProc_Process'\n    ResourceURI = 'wmicimv2/*'\n    Enumerate = $true\n}\n\n#-----Determine the type of query to make-----\n# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank\nIf (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like '*WINRM.USER*') -and ($WinRmPass -like '*WINRM.PASS*'))) {\n    $WSManParams.ComputerName = $Hostname\n} \nElse {\n    # yes. convert user/password into a credential string\n    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;\n    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;\n    $WSManParams.ComputerName = $Hostname\n    $WSManParams.Authentication = 'default'\n    $WSManParams.Credential = $RemoteCredential\n}\n\n#Get configured WinRM HTTPS Port if configured\nIf($WinRMHTTPSEnabled -eq $true){\n    $WSManParams.Port = $WinRMHttpsPort\n    $WSManParams.UseSSL = $true\n}\n#Get configured WinRM HTTPS Port if configured\nElseIf($WinRMHTTPEnabled -eq $true){\n    $WSManParams.Port = $WinRMHttpPort\n    $WSManParams.UseSSL = $false\n}\n#WinRM not detected as being configured, quit processing any further\nElse{\n    Write-Host \"WinRM is not detected as being enabled, please ensure winRM is configured and try again\"\n    Exit 1\n}\n\n#Attempt to get WMI results over WinRM\n$Result = Get-WSManInstance @WSManParams\nIf($Result){\n    Foreach($Item in $Result){\n        $Wildvalue = $Item.Name -replace '[:|\\\\|\\s|=|#]+','_'\n        Write-Host \"$Wildvalue##$($Item.Name)######auto.process.name=$($Item.Name)\"\n    }\n}\nExit 0"}}]]></adlist>
+        <schemaVersion>2</schemaVersion>
+        <dataSourceType>1</dataSourceType>
+        <attributes>
+        <attribute>
+            <name>scripttype</name>
+            <value>powerShell</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>scriptgroovy</name>
+            <value>&#60;# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #&#62;
+
+#######################      Active Discovery      #########################
+# Purpose:
+# Author:
+#------------------------------------------------------------------------------------------------------------
+# Prerequisites:
+#
+#
+#Requires -Version 3
+#------------------------------------------------------------------------------------------------------------
+# Clears the CLI of any text
+Clear-Host
+# Clears memory of all previous variables
+Remove-Variable * -ErrorAction SilentlyContinue
+#------------------------------------------------------------------------------------------------------------
+# Initialize Variables
+$WinRmUser = &#39;##WINRM.USER##&#39;
+$WinRmPass = &#39;##WINRM.PASS##&#39;
+$Hostname = &#39;##SYSTEM.HOSTNAME##&#39;
+$WinRMHttpPort = &#39;##WINRM.HTTP.PORT##&#39;
+$WinRMHttpsPort = &#39;##WINRM.HTTPS.PORT##&#39;
+$CollectorName = hostname
+$ProcessName = &#34;##AUTO.PROCESS.NAME##&#34;
+#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS
+
+
+$WinRMHTTPSEnabled = &#39;##AUTO.WINRM.HTTPS.ENABLED##&#39;
+$WinRMHTTPEnabled = &#39;##AUTO.WINRM.HTTP.ENABLED##&#39;
+
+#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection
+If ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like &#39;*WINRM.HTTPS.PORT*&#39;)) {
+    $WinRMHTTPSPort = &#39;##AUTO.WINRM.HTTPS.PORT##&#39;
+}
+If ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like &#39;*WINRM.HTTP.PORT*&#39;)) {
+    $WinRMHTTPPort = &#39;##AUTO.WINRM.HTTP.PORT##&#39;
+} 
+
+# Resolve hostname IP/Name to FQDN for WinRM over https
+$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname
+
+#Set parameters
+$WSManParams = @{
+    ErrorAction = &#39;SilentlyContinue&#39;
+    Filter = &#34;SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NAME = `&#34;$ProcessName`&#34;&#34;
+    ResourceURI = &#39;wmicimv2/*&#39;
+    Enumerate = $true
+}
+
+#-----Determine the type of query to make-----
+# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank
+If (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like &#39;*WINRM.USER*&#39;) -and ($WinRmPass -like &#39;*WINRM.PASS*&#39;))) {
+    $WSManParams.ComputerName = $Hostname
+} 
+Else {
+    # yes. convert user/password into a credential string
+    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;
+    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;
+    $WSManParams.ComputerName = $Hostname
+    $WSManParams.Authentication = &#39;default&#39;
+    $WSManParams.Credential = $RemoteCredential
+}
+
+#Get configured WinRM HTTPS Port if configured
+If($WinRMHTTPSEnabled -eq $true){
+    $WSManParams.Port = $WinRMHttpsPort
+    $WSManParams.UseSSL = $true
+}
+#Get configured WinRM HTTPS Port if configured
+ElseIf($WinRMHTTPEnabled -eq $true){
+    $WSManParams.Port = $WinRMHttpPort
+    $WSManParams.UseSSL = $false
+}
+#WinRM not detected as being configured, quit processing any further
+Else{
+    Write-Host &#34;WinRM is not detected as being enabled, please ensure winRM is configured and try again&#34;
+    Exit 1
+}
+
+#Attempt to get WMI results over WinRM
+$Result = Get-WSManInstance @WSManParams
+If($Result){
+    Foreach($Item in $Result){
+        $Output = @()
+        $Wildvalue = $Item.Name -replace &#39;[:|\\|\s|=|#]+&#39;,&#39;_&#39;
+        $Output = [PSCustomObject]@{
+            &#39;##WILDVALUE##&#39; = $WildValue
+            HandleCount = $Item.HandleCount
+            IODataBytesPerSec = $Item.IODataBytesPerSec
+            PercentProcessorTime = $Item.PercentProcessorTime
+            IDProcess = $Item.IDProcess
+            ThreadCount = $Item.ThreadCount
+            WorkingSet = $Item.WorkingSet
+        }
+        
+        $Output | ConvertTo-Json
+    }
+}
+Exit 0</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>windowsscript</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>linuxscript</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>windowscmdline</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>linuxcmdline</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>properties</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>__filter_0</name>
+            <value>auto.process.name	Contain	ChangeMe123</value>
+            <comment>Change filter to required process name/s</comment>
+        </attribute>
+        </attributes>
+        <datapoints>
+        <datapoint>
+            <name>HandleCount</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>json</postprocessormethod>
+            <postprocessorparam>HandleCount</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Total number of handles the process has open. This number is the sum of the handles currently open by each thread in the process.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>5</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>IODataBytesPerSec</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>json</postprocessormethod>
+            <postprocessorparam>IODataBytesPerSec</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Rate at which the process is reading and writing bytes in I/O operations. This property counts all I/O activity generated by the process to include file, network, and device I/Os.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>5</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>PercentProcessorTime</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>json</postprocessormethod>
+            <postprocessorparam>PercentProcessorTime</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Percentage of elapsed time that all of the threads of this process used the processor to execute instructions.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>5</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>ProcessID</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>3</type>
+            <postprocessormethod>json</postprocessormethod>
+            <postprocessorparam>IDProcessI</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Used to detect if a process is running.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>0</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>ThreadCount</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>json</postprocessormethod>
+            <postprocessorparam>ThreadCount</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of threads currently active in this process.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>0</alertTransitionIval>
+            <alertClearTransitionIval>5</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>WorkingSet</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>json</postprocessormethod>
+            <postprocessorparam>WorkingSet</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Maximum number of bytes in the working set of this process at any point in time. The working set is the set of memory pages touched recently by the threads in the process.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>0</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>ProcessCPUPercent</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>expression</postprocessormethod>
+            <postprocessorparam>PercentProcessorTime/100000</postprocessorparam>
+            <usevalue></usevalue>
+            <alertexpr>&#62;= 90</alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody>The process ##INSTANCE## ##DSIDESCRIPTION## on Windows host ##HOST## is taking up ##VALUE##% of CPU cycles, placing the processes into ##LEVEL## state.
+
+Values exceeding 100% means the process consumes resources of more than one CPU or core.
+
+This started at ##START##, -- or ##DURATION## ago.</alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Percent of CPU cycles. Value exceeding 100% means the process consumes resources of more than one CPU or core.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>5</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        </datapoints>
+        <graphs>
+        <graph>
+            <name>CPU Usage</name>
+            <title>CPU Usage</title>
+            <originId></originId>            <verticallabel>%</verticallabel>
+            <rigid>true</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>ProcessCPUPercent</name>
+            <datapointname>ProcessCPUPercent</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>2</type>
+                <legend>CPU Usage (single core)</legend>
+                <color>red</color>
+                <datapointname>ProcessCPUPercent</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>Data Throughput</name>
+            <title>Data Throughput</title>
+            <originId></originId>            <verticallabel>bytes/sec</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>true</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>IODataBytesPerSec</name>
+            <datapointname>IODataBytesPerSec</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>2</type>
+                <legend>Throughput</legend>
+                <color>blue</color>
+                <datapointname>IODataBytesPerSec</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>File Handles</name>
+            <title>File Handles</title>
+            <originId></originId>            <verticallabel>count</verticallabel>
+            <rigid>true</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>HandleCount</name>
+            <datapointname>HandleCount</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>Handle Count</legend>
+                <color>fuchsia</color>
+                <datapointname>HandleCount</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>Process Memory</name>
+            <title>Process Memory</title>
+            <originId></originId>            <verticallabel>bytes</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>true</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>WorkingSet</name>
+            <datapointname>WorkingSet</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>2</type>
+                <legend>Working Set </legend>
+                <color>orange2</color>
+                <datapointname>WorkingSet</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>Threads</name>
+            <title>Threads</title>
+            <originId></originId>            <verticallabel>count</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>ThreadCount</name>
+            <datapointname>ThreadCount</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>2</type>
+                <legend>Threads</legend>
+                <color>gray</color>
+                <datapointname>ThreadCount</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        </graphs>
+        <overviewgraphs>
+        <overviewgraph>
+            <name>Top 10 Processes by CPU Usage</name>
+            <title>Top 10 Processes by CPU Usage</title>
+            <verticallabel>%</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>false</base1024>
+            <aggregated>false</aggregated>
+            <originId></originId>
+            <datapoints>
+        <overviewgraphdatapoint>
+            <name>ProcessCPUPercent</name>
+            <datapointname>ProcessCPUPercent</datapointname>
+            <cf>1</cf>
+            <aggregateMethod>sum</aggregateMethod>
+            <originId></originId>
+        </overviewgraphdatapoint>
+            </datapoints>
+            <virtualdatapoints>
+            </virtualdatapoints>
+            <lines>
+            <overviewgraphline>
+                <type>1</type>
+                <legend>##INSTANCE##</legend>
+                <datapointname>ProcessCPUPercent</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+                <color>AUTO</color>
+            </overviewgraphline>
+            </lines>
+        </overviewgraph>
+        <overviewgraph>
+            <name>Top 10 Processes by Data Throughput</name>
+            <title>Top 10 Processes by Data Throughput</title>
+            <verticallabel>bytes/sec</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>true</base1024>
+            <aggregated>false</aggregated>
+            <originId></originId>
+            <datapoints>
+        <overviewgraphdatapoint>
+            <name>IODataBytesPerSec</name>
+            <datapointname>IODataBytesPerSec</datapointname>
+            <cf>1</cf>
+            <aggregateMethod>sum</aggregateMethod>
+            <originId></originId>
+        </overviewgraphdatapoint>
+            </datapoints>
+            <virtualdatapoints>
+            </virtualdatapoints>
+            <lines>
+            <overviewgraphline>
+                <type>1</type>
+                <legend>##INSTANCE##</legend>
+                <datapointname>IODataBytesPerSec</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+                <color>AUTO</color>
+            </overviewgraphline>
+            </lines>
+        </overviewgraph>
+        </overviewgraphs>
+        <scripts>
+        </scripts>
+    </entry>
+</feed>

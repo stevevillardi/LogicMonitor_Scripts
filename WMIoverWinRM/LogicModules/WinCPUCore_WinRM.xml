@@ -5,7 +5,7 @@
   <errmsg>OK</errmsg>
   <interval>0</interval>
     <entry type="predatasource">
-        <version>1642170851</version>
+        <version>1643140444</version>
         <name>WinCPUCore_WinRM</name>
         <displayedas>CPU Cores(WinRM)</displayedas>
         <description></description>
@@ -246,7 +246,7 @@ Exit 0</value>
         <datapoints>
         <datapoint>
             <name>PercentProcessorTime</name>
-            <originId>o7EqGGXsSvSYKwLF9cVnTg</originId>
+            <originId></originId>
             <dataType>7</dataType>
             <type>3</type>
             <postprocessormethod>namevalue</postprocessormethod>
@@ -274,7 +274,7 @@ Exit 0</value>
         </datapoint>
         <datapoint>
             <name>CoreBusyPercent</name>
-            <originId>2RGJKou5R4S5xKmYNJ3tZA</originId>
+            <originId>bCPc2FFHTl6fTaJC0jMreQ</originId>
             <dataType>7</dataType>
             <type>2</type>
             <postprocessormethod>expression</postprocessormethod>
@@ -353,7 +353,7 @@ Exit 0</value>
             <originId></originId>
             <datapoints>
         <overviewgraphdatapoint>
-            <name>CPUBusyPercent</name>
+            <name>CoreBusyPercent</name>
             <datapointname>CoreBusyPercent</datapointname>
             <cf>2</cf>
             <aggregateMethod>sum</aggregateMethod>
@@ -366,7 +366,7 @@ Exit 0</value>
             <overviewgraphline>
                 <type>1</type>
                 <legend>##INSTANCE##</legend>
-                <datapointname>CPUBusyPercent</datapointname>
+                <datapointname>CoreBusyPercent</datapointname>
                 <isvirtualdatapoint>false</isvirtualdatapoint>
                 <color>silver</color>
             </overviewgraphline>
