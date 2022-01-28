@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<feed  version="1.0" hasPendingRequests="false" >
+  <company></company>
+  <status>200</status>
+  <errmsg>OK</errmsg>
+  <interval>0</interval>
+    <entry type="predatasource">
+        <version>1643405692</version>
+        <name>Microsoft_Windows_Scheduled_Tasks_WinRM</name>
+        <displayedas>Scheduled Tasks(WinRM)</displayedas>
+        <description>Discovers and monitors windows scheduled tasks via WinRM/PSRemoting</description>
+        <collector>batchscript</collector>
+        <hasMultiInstances>true</hasMultiInstances>
+        <useWildValueAsUniqueIdentifier>false</useWildValueAsUniqueIdentifier>
+        <schedule>180</schedule>
+        <appliesTo>winrm.user &#38;&#38; winrm.pass &#38;&#38; auto.winrm.enabled == &#34;True&#34;</appliesTo>
+        <wildcardauto>true</wildcardauto>
+        <wildcardpersist>false</wildcardpersist>
+        <wildcardlinuxscript>ad_script</wildcardlinuxscript>
+        <wildcardlinuxcmdline>type=&#34;powerShell&#34; </wildcardlinuxcmdline>
+        <wildcardwinscript>ad_script</wildcardwinscript>
+        <wildcardwincmdline>type=&#34;powerShell&#34; </wildcardwincmdline>
+        <wildcardgroovyscript>&#60;# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #&#62;
+
+#######################      Active Discovery      #########################
+# Purpose:
+# Author:
+#------------------------------------------------------------------------------------------------------------
+# Prerequisites:
+#
+#
+#Requires -Version 3
+#------------------------------------------------------------------------------------------------------------
+# Clears the CLI of any text
+Clear-Host
+# Clears memory of all previous variables
+Remove-Variable * -ErrorAction SilentlyContinue
+#------------------------------------------------------------------------------------------------------------
+# Initialize Variables
+$WinRmUser = &#39;##WINRM.USER##&#39;
+$WinRmPass = &#39;##WINRM.PASS##&#39;
+$Hostname = &#39;##SYSTEM.HOSTNAME##&#39;
+$WinRMHttpPort = &#39;##WINRM.HTTP.PORT##&#39;
+$WinRMHttpsPort = &#39;##WINRM.HTTPS.PORT##&#39;
+$CollectorName = hostname
+
+#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS
+
+
+$WinRMHTTPSEnabled = &#39;##AUTO.WINRM.HTTPS.ENABLED##&#39;
+$WinRMHTTPEnabled = &#39;##AUTO.WINRM.HTTP.ENABLED##&#39;
+
+#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection
+If ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like &#39;*WINRM.HTTPS.PORT*&#39;)) {
+    $WinRMHTTPSPort = &#39;##AUTO.WINRM.HTTPS.PORT##&#39;
+}
+If ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like &#39;*WINRM.HTTP.PORT*&#39;)) {
+    $WinRMHTTPPort = &#39;##AUTO.WINRM.HTTP.PORT##&#39;
+} 
+
+# Resolve hostname IP/Name to FQDN for WinRM over https
+$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname
+
+#Set parameters
+$SessionParams = @{
+    ErrorAction = &#39;SilentlyContinue&#39;
+}
+
+$ScripBlock = {
+    $ResultSet = @()
+    $Index = 0
+    $Task = Get-ScheduledTask
+    $TaskInfo = $Task | Get-ScheduledTaskInfo
+    Foreach($Item in $Task){
+        $ResultSet += [PSCustomObject]@{
+            TaskName = $TaskInfo[$Index].TaskName
+            TaskPath = $TaskInfo[$Index].TaskPath
+            TaskState = $Item.State
+        }
+        $Index++
+    }
+
+    $ResultSet
+}
+
+#-----Determine the type of query to make-----
+# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank
+If (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like &#39;*WINRM.USER*&#39;) -and ($WinRmPass -like &#39;*WINRM.PASS*&#39;))) {
+    $SessionParams.ComputerName = $Hostname
+} 
+Else {
+    # yes. convert user/password into a credential string
+    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;
+    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;
+    $SessionParams.ComputerName = $Hostname
+    $SessionParams.Authentication = &#39;default&#39;
+    $SessionParams.Credential = $RemoteCredential
+}
+
+#Get configured WinRM HTTPS Port if configured
+If($WinRMHTTPSEnabled -eq $true){
+    $SessionParams.Port = $WinRMHttpsPort
+    $SessionParams.UseSSL = $true
+}
+#Get configured WinRM HTTPS Port if configured
+ElseIf($WinRMHTTPEnabled -eq $true){
+    $SessionParams.Port = $WinRMHttpPort
+    $SessionParams.UseSSL = $false
+}
+#WinRM not detected as being configured, quit processing any further
+Else{
+    Write-Host &#34;WinRM is not detected as being enabled, please ensure winRM is configured and try again&#34;
+    Exit 1
+}
+
+#Attempt to get WMI results over WinRM
+$Session = New-PSSession @SessionParams
+If($Session){
+    $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
+    If($Result){
+        Foreach($Item in $Result){
+            $Wildvalue = $Item.TaskName -replace &#39;[:|\\|\s|=|#]+&#39;,&#39;_&#39;
+            Write-Host &#34;$Wildvalue##$($Item.TaskName)######auto.scheduled.task.name=$($Item.TaskName)&#38;auto.scheduled.task.path=$($Item.TaskPath)&#38;auto.scheduled.task.state=$($Item.TaskState)&#34;
+        }
+        Get-PSSession | Remove-PSSession
+    }
+    Exit 0
+}
+Else{
+    Write-Host &#34;Unable to establish remote connection&#34;
+    return 1
+}</wildcardgroovyscript>
+        <wildcardschedule>1440</wildcardschedule>
+        <wildcarddisable>false</wildcarddisable>
+        <wildcarddeleteinactive>true</wildcarddeleteinactive>
+        <agdmethod>none</agdmethod>
+        <agdparams></agdparams>
+        <group></group>
+        <tags></tags>
+        <technology></technology>
+        <adlist><![CDATA[{"agdmethod":"none","method":"ad_script","agdparams":"","id":0,"filters":[{"attribute":"auto.scheduled.task.name","operation":"Contain","value":"Logic"},{"attribute":"auto.scheduled.task.state","operation":"NotEqual","value":"1"}],"params":{"type":"powerShell","groovyscript":"<# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #>\n\n#######################      Active Discovery      #########################\n# Purpose:\n# Author:\n#------------------------------------------------------------------------------------------------------------\n# Prerequisites:\n#\n#\n#Requires -Version 3\n#------------------------------------------------------------------------------------------------------------\n# Clears the CLI of any text\nClear-Host\n# Clears memory of all previous variables\nRemove-Variable * -ErrorAction SilentlyContinue\n#------------------------------------------------------------------------------------------------------------\n# Initialize Variables\n$WinRmUser = '##WINRM.USER##'\n$WinRmPass = '##WINRM.PASS##'\n$Hostname = '##SYSTEM.HOSTNAME##'\n$WinRMHttpPort = '##WINRM.HTTP.PORT##'\n$WinRMHttpsPort = '##WINRM.HTTPS.PORT##'\n$CollectorName = hostname\n\n#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS\n\n\n$WinRMHTTPSEnabled = '##AUTO.WINRM.HTTPS.ENABLED##'\n$WinRMHTTPEnabled = '##AUTO.WINRM.HTTP.ENABLED##'\n\n#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like '*WINRM.HTTPS.PORT*')) {\n    $WinRMHTTPSPort = '##AUTO.WINRM.HTTPS.PORT##'\n}\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like '*WINRM.HTTP.PORT*')) {\n    $WinRMHTTPPort = '##AUTO.WINRM.HTTP.PORT##'\n} \n\n# Resolve hostname IP/Name to FQDN for WinRM over https\n$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname\n\n#Set parameters\n$SessionParams = @{\n    ErrorAction = 'SilentlyContinue'\n}\n\n$ScripBlock = {\n    $ResultSet = @()\n    $Index = 0\n    $Task = Get-ScheduledTask\n    $TaskInfo = $Task | Get-ScheduledTaskInfo\n    Foreach($Item in $Task){\n        $ResultSet += [PSCustomObject]@{\n            TaskName = $TaskInfo[$Index].TaskName\n            TaskPath = $TaskInfo[$Index].TaskPath\n            TaskState = $Item.State\n        }\n        $Index++\n    }\n\n    $ResultSet\n}\n\n#-----Determine the type of query to make-----\n# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank\nIf (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like '*WINRM.USER*') -and ($WinRmPass -like '*WINRM.PASS*'))) {\n    $SessionParams.ComputerName = $Hostname\n} \nElse {\n    # yes. convert user/password into a credential string\n    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;\n    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;\n    $SessionParams.ComputerName = $Hostname\n    $SessionParams.Authentication = 'default'\n    $SessionParams.Credential = $RemoteCredential\n}\n\n#Get configured WinRM HTTPS Port if configured\nIf($WinRMHTTPSEnabled -eq $true){\n    $SessionParams.Port = $WinRMHttpsPort\n    $SessionParams.UseSSL = $true\n}\n#Get configured WinRM HTTPS Port if configured\nElseIf($WinRMHTTPEnabled -eq $true){\n    $SessionParams.Port = $WinRMHttpPort\n    $SessionParams.UseSSL = $false\n}\n#WinRM not detected as being configured, quit processing any further\nElse{\n    Write-Host \"WinRM is not detected as being enabled, please ensure winRM is configured and try again\"\n    Exit 1\n}\n\n#Attempt to get WMI results over WinRM\n$Session = New-PSSession @SessionParams\nIf($Session){\n    $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock\n    If($Result){\n        Foreach($Item in $Result){\n            $Wildvalue = $Item.TaskName -replace '[:|\\\\|\\s|=|#]+','_'\n            Write-Host \"$Wildvalue##$($Item.TaskName)######auto.scheduled.task.name=$($Item.TaskName)&auto.scheduled.task.path=$($Item.TaskPath)&auto.scheduled.task.state=$($Item.TaskState)\"\n        }\n        Get-PSSession | Remove-PSSession\n    }\n    Exit 0\n}\nElse{\n    Write-Host \"Unable to establish remote connection\"\n    return 1\n}"}}]]></adlist>
+        <schemaVersion>2</schemaVersion>
+        <dataSourceType>1</dataSourceType>
+        <attributes>
+        <attribute>
+            <name>scripttype</name>
+            <value>powerShell</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>scriptgroovy</name>
+            <value>&#60;# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #&#62;
+
+#######################      Active Discovery      #########################
+# Purpose:
+# Author:
+#------------------------------------------------------------------------------------------------------------
+# Prerequisites:
+#
+#
+#Requires -Version 3
+#------------------------------------------------------------------------------------------------------------
+# Clears the CLI of any text
+Clear-Host
+# Clears memory of all previous variables
+Remove-Variable * -ErrorAction SilentlyContinue
+#------------------------------------------------------------------------------------------------------------
+# Initialize Variables
+$WinRmUser = &#39;##WINRM.USER##&#39;
+$WinRmPass = &#39;##WINRM.PASS##&#39;
+$Hostname = &#39;##SYSTEM.HOSTNAME##&#39;
+$WinRMHttpPort = &#39;##WINRM.HTTP.PORT##&#39;
+$WinRMHttpsPort = &#39;##WINRM.HTTPS.PORT##&#39;
+$CollectorName = hostname
+
+#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS
+
+
+$WinRMHTTPSEnabled = &#39;##AUTO.WINRM.HTTPS.ENABLED##&#39;
+$WinRMHTTPEnabled = &#39;##AUTO.WINRM.HTTP.ENABLED##&#39;
+
+#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection
+If ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like &#39;*WINRM.HTTPS.PORT*&#39;)) {
+    $WinRMHTTPSPort = &#39;##AUTO.WINRM.HTTPS.PORT##&#39;
+}
+If ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like &#39;*WINRM.HTTP.PORT*&#39;)) {
+    $WinRMHTTPPort = &#39;##AUTO.WINRM.HTTP.PORT##&#39;
+} 
+
+# Resolve hostname IP/Name to FQDN for WinRM over https
+$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname
+
+#Set parameters
+$SessionParams = @{
+    ErrorAction = &#39;SilentlyContinue&#39;
+}
+
+$ScripBlock = {
+    $ResultSet = @()
+    $Index = 0
+    $Task = Get-ScheduledTask
+    $TaskInfo = $Task | Get-ScheduledTaskInfo
+    Foreach($Item in $Task){
+        $ResultSet += [PSCustomObject]@{
+            TaskName = $TaskInfo[$Index].TaskName
+            TaskPath = $TaskInfo[$Index].TaskPath
+            LastTaskResult = $TaskInfo[$Index].LastTaskResult
+            NumberOfMissedRuns = $TaskInfo[$Index].NumberOfMissedRuns
+            TaskState = $Item.State
+        }
+        $Index++
+    }
+
+    $ResultSet
+}
+
+#-----Determine the type of query to make-----
+# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank
+If (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like &#39;*WINRM.USER*&#39;) -and ($WinRmPass -like &#39;*WINRM.PASS*&#39;))) {
+    $SessionParams.ComputerName = $Hostname
+} 
+Else {
+    # yes. convert user/password into a credential string
+    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;
+    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;
+    $SessionParams.ComputerName = $Hostname
+    $SessionParams.Authentication = &#39;default&#39;
+    $SessionParams.Credential = $RemoteCredential
+}
+
+#Get configured WinRM HTTPS Port if configured
+If($WinRMHTTPSEnabled -eq $true){
+    $SessionParams.Port = $WinRMHttpsPort
+    $SessionParams.UseSSL = $true
+}
+#Get configured WinRM HTTPS Port if configured
+ElseIf($WinRMHTTPEnabled -eq $true){
+    $SessionParams.Port = $WinRMHttpPort
+    $SessionParams.UseSSL = $false
+}
+#WinRM not detected as being configured, quit processing any further
+Else{
+    Write-Host &#34;WinRM is not detected as being enabled, please ensure winRM is configured and try again&#34;
+    Exit 1
+}
+
+#Attempt to get WMI results over WinRM
+$Session = New-PSSession @SessionParams
+If($Session){
+    $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
+    If($Result){
+        Foreach($Item in $Result){
+            $Wildvalue = $Item.TaskName -replace &#39;[:|\\|\s|=|#]+&#39;,&#39;_&#39;
+            Write-Host &#34;$Wildvalue.LastTaskResult=$($Item.LastTaskResult)&#34;
+            Write-Host &#34;$Wildvalue.NumberOfMissedRuns=$($Item.NumberOfMissedRuns)&#34;
+        }
+        Get-PSSession | Remove-PSSession
+    }
+    Exit 0
+}
+Else{
+    Write-Host &#34;Unable to establish remote connection&#34;
+    return 1
+}</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>windowsscript</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>linuxscript</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>windowscmdline</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>linuxcmdline</name>
+            <value></value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>__filter_0</name>
+            <value>auto.scheduled.task.name	Contain	Logic</value>
+            <comment></comment>
+        </attribute>
+        <attribute>
+            <name>__filter_1</name>
+            <value>auto.scheduled.task.state	NotEqual	1</value>
+            <comment>Filter disabled tasks</comment>
+        </attribute>
+        </attributes>
+        <datapoints>
+        <datapoint>
+            <name>LastTaskResult</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>##WILDVALUE##.LastTaskResult</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr>!= 0 0</alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Last exit result exit code</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>0</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>NumberOfMissedRuns</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>##WILDVALUE##.NumberOfMissedRuns</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of times a scheduled tail missed its run window.</description>
+            <maxvalue></maxvalue>
+            <minvalue>0</minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>0</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        </datapoints>
+        <graphs>
+        <graph>
+            <name>Last Exit Code</name>
+            <title>Last Exit Code</title>
+            <originId></originId>            <verticallabel>Error Code</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>NaN</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>yesterday</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>LastTaskResult</name>
+            <datapointname>LastTaskResult</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>LastTaskResult</legend>
+                <color>green</color>
+                <datapointname>LastTaskResult</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>Number of Missed Runs</name>
+            <title>Number of Missed Runs</title>
+            <originId></originId>            <verticallabel>#</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>yesterday</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>NumberOfMissedRuns</name>
+            <datapointname>NumberOfMissedRuns</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>NumberOfMissedRuns</legend>
+                <color>silver</color>
+                <datapointname>NumberOfMissedRuns</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        </graphs>
+        <overviewgraphs>
+        </overviewgraphs>
+        <scripts>
+        </scripts>
+    </entry>
+</feed>
