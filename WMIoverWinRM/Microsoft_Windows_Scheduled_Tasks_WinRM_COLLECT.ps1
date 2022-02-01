@@ -46,21 +46,23 @@ $SessionParams = @{
 
 $ScripBlock = {
     $ResultSet = @()
-    $Index = 0
-    $Task = Get-ScheduledTask
-    $TaskInfo = $Task | Get-ScheduledTaskInfo
-    Foreach($Item in $Task){
-        $ResultSet += [PSCustomObject]@{
-            TaskName = $TaskInfo[$Index].TaskName
-            TaskPath = $TaskInfo[$Index].TaskPath
-            LastTaskResult = $TaskInfo[$Index].LastTaskResult
-            NumberOfMissedRuns = $TaskInfo[$Index].NumberOfMissedRuns
-            TaskState = $Item.State
+    $Tasks = Get-ScheduledTask
+    $TaskInfo = $Tasks | Get-ScheduledTaskInfo
+    Foreach($Task in $Tasks){
+        $Index = $TaskInfo.TaskName.IndexOf($Task.TaskName)
+        If($Index -ne -1){
+            $ResultSet += [PSCustomObject]@{
+                TaskName = $TaskInfo[$Index].TaskName
+                TaskPath = $TaskInfo[$Index].TaskPath
+                LastTaskResult = $TaskInfo[$Index].LastTaskResult
+                LastRunTime = [DateTime]$TaskInfo[$Index].LastRunTime.ToUniversalTime()
+                NumberOfMissedRuns = $TaskInfo[$Index].NumberOfMissedRuns
+                TaskState = $Task.State.value__.ToString()
+            }
         }
-        $Index++
     }
 
-    $ResultSet
+    return $ResultSet
 }
 
 #-----Determine the type of query to make-----
@@ -96,12 +98,24 @@ Else{
 #Attempt to get WMI results over WinRM
 $Session = New-PSSession @SessionParams
 If($Session){
-    $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
-    If($Result){
-        Foreach($Item in $Result){
-            $Wildvalue = $Item.TaskName -replace '[:|\\|\s|=|#]+','_'
-            Write-Host "$Wildvalue.LastTaskResult=$($Item.LastTaskResult)"
-            Write-Host "$Wildvalue.NumberOfMissedRuns=$($Item.NumberOfMissedRuns)"
+    $Results = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
+    If($Results){
+        Foreach($Result in $Results){
+            
+            $Wildvalue = $Result.TaskName -replace '[:|\\|\s|=|#]+','_'
+            Write-Host "$Wildvalue.LastTaskResult=$($Result.LastTaskResult)"
+            Write-Host "$Wildvalue.NumberOfMissedRuns=$($Result.NumberOfMissedRuns)"
+            Write-Host "$Wildvalue.State=$($Result.TaskState)"
+            
+            #Is task currently running
+            If($Result.TaskState -eq "4"){
+                $CurrentTime = [System.DateTime]::UtcNow
+                $ElapsedRunTimeSeconds = (New-TimeSpan -Start $Result.LastRunTime -End $CurrentTime).TotalSeconds
+                Write-Host "$Wildvalue.ElapsedRunTimeSeconds=$ElapsedRunTimeSeconds"
+            }
+            Else{
+                Write-Host "$Wildvalue.ElapsedRunTimeSeconds=0"
+            }
         }
         Get-PSSession | Remove-PSSession
     }

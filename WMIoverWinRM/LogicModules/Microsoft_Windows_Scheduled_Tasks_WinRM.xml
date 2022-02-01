@@ -5,7 +5,7 @@
   <errmsg>OK</errmsg>
   <interval>0</interval>
     <entry type="predatasource">
-        <version>1643405692</version>
+        <version>1643426137</version>
         <name>Microsoft_Windows_Scheduled_Tasks_WinRM</name>
         <displayedas>Scheduled Tasks(WinRM)</displayedas>
         <description>Discovers and monitors windows scheduled tasks via WinRM/PSRemoting</description>
@@ -15,7 +15,7 @@
         <schedule>180</schedule>
         <appliesTo>winrm.user &#38;&#38; winrm.pass &#38;&#38; auto.winrm.enabled == &#34;True&#34;</appliesTo>
         <wildcardauto>true</wildcardauto>
-        <wildcardpersist>false</wildcardpersist>
+        <wildcardpersist>true</wildcardpersist>
         <wildcardlinuxscript>ad_script</wildcardlinuxscript>
         <wildcardlinuxcmdline>type=&#34;powerShell&#34; </wildcardlinuxcmdline>
         <wildcardwinscript>ad_script</wildcardwinscript>
@@ -75,7 +75,7 @@ $ScripBlock = {
         $ResultSet += [PSCustomObject]@{
             TaskName = $TaskInfo[$Index].TaskName
             TaskPath = $TaskInfo[$Index].TaskPath
-            TaskState = $Item.State
+            TaskState = $Item.State.value__
         }
         $Index++
     }
@@ -138,7 +138,7 @@ Else{
         <group></group>
         <tags></tags>
         <technology></technology>
-        <adlist><![CDATA[{"agdmethod":"none","method":"ad_script","agdparams":"","id":0,"filters":[{"attribute":"auto.scheduled.task.name","operation":"Contain","value":"Logic"},{"attribute":"auto.scheduled.task.state","operation":"NotEqual","value":"1"}],"params":{"type":"powerShell","groovyscript":"<# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #>\n\n#######################      Active Discovery      #########################\n# Purpose:\n# Author:\n#------------------------------------------------------------------------------------------------------------\n# Prerequisites:\n#\n#\n#Requires -Version 3\n#------------------------------------------------------------------------------------------------------------\n# Clears the CLI of any text\nClear-Host\n# Clears memory of all previous variables\nRemove-Variable * -ErrorAction SilentlyContinue\n#------------------------------------------------------------------------------------------------------------\n# Initialize Variables\n$WinRmUser = '##WINRM.USER##'\n$WinRmPass = '##WINRM.PASS##'\n$Hostname = '##SYSTEM.HOSTNAME##'\n$WinRMHttpPort = '##WINRM.HTTP.PORT##'\n$WinRMHttpsPort = '##WINRM.HTTPS.PORT##'\n$CollectorName = hostname\n\n#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS\n\n\n$WinRMHTTPSEnabled = '##AUTO.WINRM.HTTPS.ENABLED##'\n$WinRMHTTPEnabled = '##AUTO.WINRM.HTTP.ENABLED##'\n\n#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like '*WINRM.HTTPS.PORT*')) {\n    $WinRMHTTPSPort = '##AUTO.WINRM.HTTPS.PORT##'\n}\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like '*WINRM.HTTP.PORT*')) {\n    $WinRMHTTPPort = '##AUTO.WINRM.HTTP.PORT##'\n} \n\n# Resolve hostname IP/Name to FQDN for WinRM over https\n$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname\n\n#Set parameters\n$SessionParams = @{\n    ErrorAction = 'SilentlyContinue'\n}\n\n$ScripBlock = {\n    $ResultSet = @()\n    $Index = 0\n    $Task = Get-ScheduledTask\n    $TaskInfo = $Task | Get-ScheduledTaskInfo\n    Foreach($Item in $Task){\n        $ResultSet += [PSCustomObject]@{\n            TaskName = $TaskInfo[$Index].TaskName\n            TaskPath = $TaskInfo[$Index].TaskPath\n            TaskState = $Item.State\n        }\n        $Index++\n    }\n\n    $ResultSet\n}\n\n#-----Determine the type of query to make-----\n# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank\nIf (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like '*WINRM.USER*') -and ($WinRmPass -like '*WINRM.PASS*'))) {\n    $SessionParams.ComputerName = $Hostname\n} \nElse {\n    # yes. convert user/password into a credential string\n    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;\n    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;\n    $SessionParams.ComputerName = $Hostname\n    $SessionParams.Authentication = 'default'\n    $SessionParams.Credential = $RemoteCredential\n}\n\n#Get configured WinRM HTTPS Port if configured\nIf($WinRMHTTPSEnabled -eq $true){\n    $SessionParams.Port = $WinRMHttpsPort\n    $SessionParams.UseSSL = $true\n}\n#Get configured WinRM HTTPS Port if configured\nElseIf($WinRMHTTPEnabled -eq $true){\n    $SessionParams.Port = $WinRMHttpPort\n    $SessionParams.UseSSL = $false\n}\n#WinRM not detected as being configured, quit processing any further\nElse{\n    Write-Host \"WinRM is not detected as being enabled, please ensure winRM is configured and try again\"\n    Exit 1\n}\n\n#Attempt to get WMI results over WinRM\n$Session = New-PSSession @SessionParams\nIf($Session){\n    $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock\n    If($Result){\n        Foreach($Item in $Result){\n            $Wildvalue = $Item.TaskName -replace '[:|\\\\|\\s|=|#]+','_'\n            Write-Host \"$Wildvalue##$($Item.TaskName)######auto.scheduled.task.name=$($Item.TaskName)&auto.scheduled.task.path=$($Item.TaskPath)&auto.scheduled.task.state=$($Item.TaskState)\"\n        }\n        Get-PSSession | Remove-PSSession\n    }\n    Exit 0\n}\nElse{\n    Write-Host \"Unable to establish remote connection\"\n    return 1\n}"}}]]></adlist>
+        <adlist><![CDATA[{"agdmethod":"none","method":"ad_script","agdparams":"","id":0,"filters":[{"attribute":"auto.scheduled.task.name","operation":"RegexMatch","value":"UpdateMe"},{"attribute":"auto.scheduled.task.state","operation":"RegexNotMatch","value":"1"}],"params":{"type":"powerShell","groovyscript":"<# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #>\n\n#######################      Active Discovery      #########################\n# Purpose:\n# Author:\n#------------------------------------------------------------------------------------------------------------\n# Prerequisites:\n#\n#\n#Requires -Version 3\n#------------------------------------------------------------------------------------------------------------\n# Clears the CLI of any text\nClear-Host\n# Clears memory of all previous variables\nRemove-Variable * -ErrorAction SilentlyContinue\n#------------------------------------------------------------------------------------------------------------\n# Initialize Variables\n$WinRmUser = '##WINRM.USER##'\n$WinRmPass = '##WINRM.PASS##'\n$Hostname = '##SYSTEM.HOSTNAME##'\n$WinRMHttpPort = '##WINRM.HTTP.PORT##'\n$WinRMHttpsPort = '##WINRM.HTTPS.PORT##'\n$CollectorName = hostname\n\n#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS\n\n\n$WinRMHTTPSEnabled = '##AUTO.WINRM.HTTPS.ENABLED##'\n$WinRMHTTPEnabled = '##AUTO.WINRM.HTTP.ENABLED##'\n\n#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like '*WINRM.HTTPS.PORT*')) {\n    $WinRMHTTPSPort = '##AUTO.WINRM.HTTPS.PORT##'\n}\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like '*WINRM.HTTP.PORT*')) {\n    $WinRMHTTPPort = '##AUTO.WINRM.HTTP.PORT##'\n} \n\n# Resolve hostname IP/Name to FQDN for WinRM over https\n$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname\n\n#Set parameters\n$SessionParams = @{\n    ErrorAction = 'SilentlyContinue'\n}\n\n$ScripBlock = {\n    $ResultSet = @()\n    $Index = 0\n    $Task = Get-ScheduledTask\n    $TaskInfo = $Task | Get-ScheduledTaskInfo\n    Foreach($Item in $Task){\n        $ResultSet += [PSCustomObject]@{\n            TaskName = $TaskInfo[$Index].TaskName\n            TaskPath = $TaskInfo[$Index].TaskPath\n            TaskState = $Item.State.value__\n        }\n        $Index++\n    }\n\n    $ResultSet\n}\n\n#-----Determine the type of query to make-----\n# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank\nIf (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like '*WINRM.USER*') -and ($WinRmPass -like '*WINRM.PASS*'))) {\n    $SessionParams.ComputerName = $Hostname\n} \nElse {\n    # yes. convert user/password into a credential string\n    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;\n    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;\n    $SessionParams.ComputerName = $Hostname\n    $SessionParams.Authentication = 'default'\n    $SessionParams.Credential = $RemoteCredential\n}\n\n#Get configured WinRM HTTPS Port if configured\nIf($WinRMHTTPSEnabled -eq $true){\n    $SessionParams.Port = $WinRMHttpsPort\n    $SessionParams.UseSSL = $true\n}\n#Get configured WinRM HTTPS Port if configured\nElseIf($WinRMHTTPEnabled -eq $true){\n    $SessionParams.Port = $WinRMHttpPort\n    $SessionParams.UseSSL = $false\n}\n#WinRM not detected as being configured, quit processing any further\nElse{\n    Write-Host \"WinRM is not detected as being enabled, please ensure winRM is configured and try again\"\n    Exit 1\n}\n\n#Attempt to get WMI results over WinRM\n$Session = New-PSSession @SessionParams\nIf($Session){\n    $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock\n    If($Result){\n        Foreach($Item in $Result){\n            $Wildvalue = $Item.TaskName -replace '[:|\\\\|\\s|=|#]+','_'\n            Write-Host \"$Wildvalue##$($Item.TaskName)######auto.scheduled.task.name=$($Item.TaskName)&auto.scheduled.task.path=$($Item.TaskPath)&auto.scheduled.task.state=$($Item.TaskState)\"\n        }\n        Get-PSSession | Remove-PSSession\n    }\n    Exit 0\n}\nElse{\n    Write-Host \"Unable to establish remote connection\"\n    return 1\n}"}}]]></adlist>
         <schemaVersion>2</schemaVersion>
         <dataSourceType>1</dataSourceType>
         <attributes>
@@ -205,8 +205,9 @@ $ScripBlock = {
             TaskName = $TaskInfo[$Index].TaskName
             TaskPath = $TaskInfo[$Index].TaskPath
             LastTaskResult = $TaskInfo[$Index].LastTaskResult
+            LastRunTime = [DateTime]$TaskInfo[$Index].LastRunTime.ToUniversalTime()
             NumberOfMissedRuns = $TaskInfo[$Index].NumberOfMissedRuns
-            TaskState = $Item.State
+            TaskState = $Item.State.value__
         }
         $Index++
     }
@@ -250,9 +251,21 @@ If($Session){
     $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
     If($Result){
         Foreach($Item in $Result){
+            
             $Wildvalue = $Item.TaskName -replace &#39;[:|\\|\s|=|#]+&#39;,&#39;_&#39;
             Write-Host &#34;$Wildvalue.LastTaskResult=$($Item.LastTaskResult)&#34;
             Write-Host &#34;$Wildvalue.NumberOfMissedRuns=$($Item.NumberOfMissedRuns)&#34;
+            Write-Host &#34;$Wildvalue.State=$($Item.TaskState)&#34;
+            
+            #Is task currently running
+            If($Item.TaskState -eq 4){
+                $CurrentTime = [System.DateTime]::UtcNow
+                $ElapsedRunTimeSeconds = (New-TimeSpan -Start $Item.LastRunTime -End $CurrentTime).TotalSeconds
+                Write-Host &#34;$Wildvalue.ElapsedRunTimeSeconds=$ElapsedRunTimeSeconds&#34;
+            }
+            Else{
+                Write-Host &#34;$Wildvalue.ElapsedRunTimeSeconds=0&#34;
+            }
         }
         Get-PSSession | Remove-PSSession
     }
@@ -286,12 +299,12 @@ Else{
         </attribute>
         <attribute>
             <name>__filter_0</name>
-            <value>auto.scheduled.task.name	Contain	Logic</value>
-            <comment></comment>
+            <value>auto.scheduled.task.name	RegexMatch	UpdateMe</value>
+            <comment>Change filter to include desired tasks</comment>
         </attribute>
         <attribute>
             <name>__filter_1</name>
-            <value>auto.scheduled.task.state	NotEqual	1</value>
+            <value>auto.scheduled.task.state	RegexNotMatch	1</value>
             <comment>Filter disabled tasks</comment>
         </attribute>
         </attributes>
@@ -313,7 +326,7 @@ Else{
             <warnadadvsetting></warnadadvsetting>
             <erroradadvsetting></erroradadvsetting>
             <criticaladadvsetting></criticaladadvsetting>
-            <description>Last exit result exit code</description>
+            <description>Last exit result exit code. 0 means task completed successfully.</description>
             <maxvalue></maxvalue>
             <minvalue></minvalue>
             <userparam1></userparam1>
@@ -352,8 +365,129 @@ Else{
             <alertTransitionIval>0</alertTransitionIval>
             <alertClearTransitionIval>0</alertClearTransitionIval>
         </datapoint>
+        <datapoint>
+            <name>ElapsedRunTimeSeconds</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>##WILDVALUE##.ElapsedRunTimeSeconds</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr></alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>Number of seconds tasks has been running. Will return 0 if task is not currently in a Running state.</description>
+            <maxvalue></maxvalue>
+            <minvalue></minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>0</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
+        <datapoint>
+            <name>State</name>
+            <originId></originId>
+            <dataType>7</dataType>
+            <type>2</type>
+            <postprocessormethod>namevalue</postprocessormethod>
+            <postprocessorparam>##WILDVALUE##.State</postprocessorparam>
+            <usevalue>output</usevalue>
+            <alertexpr>= 1 1</alertexpr>
+            <alertmissing>1</alertmissing>
+            <alertsubject></alertsubject>
+            <alertbody></alertbody>
+            <enableanomalyalertsuppression></enableanomalyalertsuppression>
+            <adadvsettingenabled>false</adadvsettingenabled>
+            <warnadadvsetting></warnadadvsetting>
+            <erroradadvsetting></erroradadvsetting>
+            <criticaladadvsetting></criticaladadvsetting>
+            <description>The current state of the scheduled task.
+
+1 = Disabled
+2 = Running
+3 = Ready
+4 = Queued</description>
+            <maxvalue>4</maxvalue>
+            <minvalue>1</minvalue>
+            <userparam1></userparam1>
+            <userparam2></userparam2>
+            <userparam3></userparam3>
+            <iscomposite>false</iscomposite>
+            <rpn></rpn>
+            <alertTransitionIval>0</alertTransitionIval>
+            <alertClearTransitionIval>0</alertClearTransitionIval>
+        </datapoint>
         </datapoints>
         <graphs>
+        <graph>
+            <name>Current State</name>
+            <title>Current State</title>
+            <originId></originId>            <verticallabel>1=Disabled,2=Queued,3=Ready,4=Running</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>2.0</maxvalue>
+            <minvalue>1.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>State</name>
+            <datapointname>State</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>State</legend>
+                <color>aqua</color>
+                <datapointname>State</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
+        <graph>
+            <name>Elapsed Run Time</name>
+            <title>Elapsed Run Time</title>
+            <originId></originId>            <verticallabel>seconds</verticallabel>
+            <rigid>false</rigid>
+            <maxvalue>NaN</maxvalue>
+            <minvalue>0.0</minvalue>
+            <displayprio>1</displayprio>
+            <timescale>1day</timescale>
+            <base1024>false</base1024>
+            <graphdatapoints>
+        <graphdatapoint>
+            <name>ElapsedRunTimeSeconds</name>
+            <datapointname>ElapsedRunTimeSeconds</datapointname>
+            <originId></originId>
+            <cf>1</cf>
+        </graphdatapoint>
+            </graphdatapoints>
+            <graphvirtualdatapoints>
+            </graphvirtualdatapoints>
+            <graphdatas>
+            <graphdata>
+                <type>1</type>
+                <legend>ElapsedRunTimeSeconds</legend>
+                <color>orange</color>
+                <datapointname>ElapsedRunTimeSeconds</datapointname>
+                <isvirtualdatapoint>false</isvirtualdatapoint>
+            </graphdata>
+            </graphdatas>
+        </graph>
         <graph>
             <name>Last Exit Code</name>
             <title>Last Exit Code</title>
@@ -362,7 +496,7 @@ Else{
             <maxvalue>NaN</maxvalue>
             <minvalue>NaN</minvalue>
             <displayprio>1</displayprio>
-            <timescale>yesterday</timescale>
+            <timescale>1day</timescale>
             <base1024>false</base1024>
             <graphdatapoints>
         <graphdatapoint>
@@ -392,7 +526,7 @@ Else{
             <maxvalue>NaN</maxvalue>
             <minvalue>0.0</minvalue>
             <displayprio>1</displayprio>
-            <timescale>yesterday</timescale>
+            <timescale>1day</timescale>
             <base1024>false</base1024>
             <graphdatapoints>
         <graphdatapoint>

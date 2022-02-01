@@ -46,19 +46,20 @@ $SessionParams = @{
 
 $ScripBlock = {
     $ResultSet = @()
-    $Index = 0
     $Task = Get-ScheduledTask
-    $TaskInfo = $Task | Get-ScheduledTaskInfo
-    Foreach($Item in $Task){
-        $ResultSet += [PSCustomObject]@{
-            TaskName = $TaskInfo[$Index].TaskName
-            TaskPath = $TaskInfo[$Index].TaskPath
-            TaskState = $Item.State
+    $TaskInfo = $Tasks | Get-ScheduledTaskInfo
+    Foreach($Task in $Tasks){
+        $Index = $TaskInfo.TaskName.IndexOf($Task.TaskName)
+        If($Index -ne -1){
+            $ResultSet += [PSCustomObject]@{
+                TaskName = $TaskInfo[$Index].TaskName
+                TaskPath = $TaskInfo[$Index].TaskPath
+                TaskState = $Task.State.value__
+            }
         }
-        $Index++
     }
 
-    $ResultSet
+    return $ResultSet
 }
 
 #-----Determine the type of query to make-----
@@ -94,11 +95,11 @@ Else{
 #Attempt to get WMI results over WinRM
 $Session = New-PSSession @SessionParams
 If($Session){
-    $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
-    If($Result){
-        Foreach($Item in $Result){
-            $Wildvalue = $Item.TaskName -replace '[:|\\|\s|=|#]+','_'
-            Write-Host "$Wildvalue##$($Item.TaskName)######auto.scheduled.task.name=$($Item.TaskName)&auto.scheduled.task.path=$($Item.TaskPath)&auto.scheduled.task.state=$($Item.TaskState)"
+    $Results = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
+    If($Results){
+        Foreach($Result in $Results){
+            $Wildvalue = $Result.TaskName -replace '[:|\\|\s|=|#]+','_'
+            Write-Host "$Wildvalue##$($Result.TaskName)######auto.scheduled.task.name=$($Result.TaskName)&auto.scheduled.task.path=$($Result.TaskPath)&auto.scheduled.task.state=$($Result.TaskState)"
         }
         Get-PSSession | Remove-PSSession
     }
