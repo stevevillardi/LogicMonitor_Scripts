@@ -46,7 +46,7 @@ $SessionParams = @{
 
 $ScripBlock = {
     $ResultSet = @()
-    $Task = Get-ScheduledTask
+    $Tasks = Get-ScheduledTask
     $TaskInfo = $Tasks | Get-ScheduledTaskInfo
     Foreach($Task in $Tasks){
         $Index = $TaskInfo.TaskName.IndexOf($Task.TaskName)

@@ -5,7 +5,7 @@
   <errmsg>OK</errmsg>
   <interval>0</interval>
     <entry type="predatasource">
-        <version>1643426137</version>
+        <version>1643734277</version>
         <name>Microsoft_Windows_Scheduled_Tasks_WinRM</name>
         <displayedas>Scheduled Tasks(WinRM)</displayedas>
         <description>Discovers and monitors windows scheduled tasks via WinRM/PSRemoting</description>
@@ -68,19 +68,20 @@ $SessionParams = @{
 
 $ScripBlock = {
     $ResultSet = @()
-    $Index = 0
-    $Task = Get-ScheduledTask
-    $TaskInfo = $Task | Get-ScheduledTaskInfo
-    Foreach($Item in $Task){
-        $ResultSet += [PSCustomObject]@{
-            TaskName = $TaskInfo[$Index].TaskName
-            TaskPath = $TaskInfo[$Index].TaskPath
-            TaskState = $Item.State.value__
+    $Tasks = Get-ScheduledTask
+    $TaskInfo = $Tasks | Get-ScheduledTaskInfo
+    Foreach($Task in $Tasks){
+        $Index = $TaskInfo.TaskName.IndexOf($Task.TaskName)
+        If($Index -ne -1){
+            $ResultSet += [PSCustomObject]@{
+                TaskName = $TaskInfo[$Index].TaskName
+                TaskPath = $TaskInfo[$Index].TaskPath
+                TaskState = $Task.State.value__
+            }
         }
-        $Index++
     }
 
-    $ResultSet
+    return $ResultSet
 }
 
 #-----Determine the type of query to make-----
@@ -116,11 +117,11 @@ Else{
 #Attempt to get WMI results over WinRM
 $Session = New-PSSession @SessionParams
 If($Session){
-    $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
-    If($Result){
-        Foreach($Item in $Result){
-            $Wildvalue = $Item.TaskName -replace &#39;[:|\\|\s|=|#]+&#39;,&#39;_&#39;
-            Write-Host &#34;$Wildvalue##$($Item.TaskName)######auto.scheduled.task.name=$($Item.TaskName)&#38;auto.scheduled.task.path=$($Item.TaskPath)&#38;auto.scheduled.task.state=$($Item.TaskState)&#34;
+    $Results = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
+    If($Results){
+        Foreach($Result in $Results){
+            $Wildvalue = $Result.TaskName -replace &#39;[:|\\|\s|=|#]+&#39;,&#39;_&#39;
+            Write-Host &#34;$Wildvalue##$($Result.TaskName)######auto.scheduled.task.name=$($Result.TaskName)&#38;auto.scheduled.task.path=$($Result.TaskPath)&#38;auto.scheduled.task.state=$($Result.TaskState)&#34;
         }
         Get-PSSession | Remove-PSSession
     }
@@ -138,7 +139,7 @@ Else{
         <group></group>
         <tags></tags>
         <technology></technology>
-        <adlist><![CDATA[{"agdmethod":"none","method":"ad_script","agdparams":"","id":0,"filters":[{"attribute":"auto.scheduled.task.name","operation":"RegexMatch","value":"UpdateMe"},{"attribute":"auto.scheduled.task.state","operation":"RegexNotMatch","value":"1"}],"params":{"type":"powerShell","groovyscript":"<# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #>\n\n#######################      Active Discovery      #########################\n# Purpose:\n# Author:\n#------------------------------------------------------------------------------------------------------------\n# Prerequisites:\n#\n#\n#Requires -Version 3\n#------------------------------------------------------------------------------------------------------------\n# Clears the CLI of any text\nClear-Host\n# Clears memory of all previous variables\nRemove-Variable * -ErrorAction SilentlyContinue\n#------------------------------------------------------------------------------------------------------------\n# Initialize Variables\n$WinRmUser = '##WINRM.USER##'\n$WinRmPass = '##WINRM.PASS##'\n$Hostname = '##SYSTEM.HOSTNAME##'\n$WinRMHttpPort = '##WINRM.HTTP.PORT##'\n$WinRMHttpsPort = '##WINRM.HTTPS.PORT##'\n$CollectorName = hostname\n\n#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS\n\n\n$WinRMHTTPSEnabled = '##AUTO.WINRM.HTTPS.ENABLED##'\n$WinRMHTTPEnabled = '##AUTO.WINRM.HTTP.ENABLED##'\n\n#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like '*WINRM.HTTPS.PORT*')) {\n    $WinRMHTTPSPort = '##AUTO.WINRM.HTTPS.PORT##'\n}\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like '*WINRM.HTTP.PORT*')) {\n    $WinRMHTTPPort = '##AUTO.WINRM.HTTP.PORT##'\n} \n\n# Resolve hostname IP/Name to FQDN for WinRM over https\n$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname\n\n#Set parameters\n$SessionParams = @{\n    ErrorAction = 'SilentlyContinue'\n}\n\n$ScripBlock = {\n    $ResultSet = @()\n    $Index = 0\n    $Task = Get-ScheduledTask\n    $TaskInfo = $Task | Get-ScheduledTaskInfo\n    Foreach($Item in $Task){\n        $ResultSet += [PSCustomObject]@{\n            TaskName = $TaskInfo[$Index].TaskName\n            TaskPath = $TaskInfo[$Index].TaskPath\n            TaskState = $Item.State.value__\n        }\n        $Index++\n    }\n\n    $ResultSet\n}\n\n#-----Determine the type of query to make-----\n# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank\nIf (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like '*WINRM.USER*') -and ($WinRmPass -like '*WINRM.PASS*'))) {\n    $SessionParams.ComputerName = $Hostname\n} \nElse {\n    # yes. convert user/password into a credential string\n    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;\n    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;\n    $SessionParams.ComputerName = $Hostname\n    $SessionParams.Authentication = 'default'\n    $SessionParams.Credential = $RemoteCredential\n}\n\n#Get configured WinRM HTTPS Port if configured\nIf($WinRMHTTPSEnabled -eq $true){\n    $SessionParams.Port = $WinRMHttpsPort\n    $SessionParams.UseSSL = $true\n}\n#Get configured WinRM HTTPS Port if configured\nElseIf($WinRMHTTPEnabled -eq $true){\n    $SessionParams.Port = $WinRMHttpPort\n    $SessionParams.UseSSL = $false\n}\n#WinRM not detected as being configured, quit processing any further\nElse{\n    Write-Host \"WinRM is not detected as being enabled, please ensure winRM is configured and try again\"\n    Exit 1\n}\n\n#Attempt to get WMI results over WinRM\n$Session = New-PSSession @SessionParams\nIf($Session){\n    $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock\n    If($Result){\n        Foreach($Item in $Result){\n            $Wildvalue = $Item.TaskName -replace '[:|\\\\|\\s|=|#]+','_'\n            Write-Host \"$Wildvalue##$($Item.TaskName)######auto.scheduled.task.name=$($Item.TaskName)&auto.scheduled.task.path=$($Item.TaskPath)&auto.scheduled.task.state=$($Item.TaskState)\"\n        }\n        Get-PSSession | Remove-PSSession\n    }\n    Exit 0\n}\nElse{\n    Write-Host \"Unable to establish remote connection\"\n    return 1\n}"}}]]></adlist>
+        <adlist><![CDATA[{"agdmethod":"none","method":"ad_script","agdparams":"","id":0,"filters":[{"attribute":"auto.scheduled.task.name","operation":"RegexMatch","value":"Logic|CreateExplorerShellUnelevatedTask"},{"attribute":"auto.scheduled.task.state","operation":"RegexNotMatch","value":"1"}],"params":{"type":"powerShell","groovyscript":"<# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #>\n\n#######################      Active Discovery      #########################\n# Purpose:\n# Author:\n#------------------------------------------------------------------------------------------------------------\n# Prerequisites:\n#\n#\n#Requires -Version 3\n#------------------------------------------------------------------------------------------------------------\n# Clears the CLI of any text\nClear-Host\n# Clears memory of all previous variables\nRemove-Variable * -ErrorAction SilentlyContinue\n#------------------------------------------------------------------------------------------------------------\n# Initialize Variables\n$WinRmUser = '##WINRM.USER##'\n$WinRmPass = '##WINRM.PASS##'\n$Hostname = '##SYSTEM.HOSTNAME##'\n$WinRMHttpPort = '##WINRM.HTTP.PORT##'\n$WinRMHttpsPort = '##WINRM.HTTPS.PORT##'\n$CollectorName = hostname\n\n#Collect Auto Props set by Microsoft_PowerShell_WinRM_Info PS\n\n\n$WinRMHTTPSEnabled = '##AUTO.WINRM.HTTPS.ENABLED##'\n$WinRMHTTPEnabled = '##AUTO.WINRM.HTTP.ENABLED##'\n\n#If WINRM.HTTP/HTTPS.PORT is set use that value otherwise fallback to what was detected during PS detection\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like '*WINRM.HTTPS.PORT*')) {\n    $WinRMHTTPSPort = '##AUTO.WINRM.HTTPS.PORT##'\n}\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like '*WINRM.HTTP.PORT*')) {\n    $WinRMHTTPPort = '##AUTO.WINRM.HTTP.PORT##'\n} \n\n# Resolve hostname IP/Name to FQDN for WinRM over https\n$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname\n\n#Set parameters\n$SessionParams = @{\n    ErrorAction = 'SilentlyContinue'\n}\n\n$ScripBlock = {\n    $ResultSet = @()\n    $Tasks = Get-ScheduledTask\n    $TaskInfo = $Tasks | Get-ScheduledTaskInfo\n    Foreach($Task in $Tasks){\n        $Index = $TaskInfo.TaskName.IndexOf($Task.TaskName)\n        If($Index -ne -1){\n            $ResultSet += [PSCustomObject]@{\n                TaskName = $TaskInfo[$Index].TaskName\n                TaskPath = $TaskInfo[$Index].TaskPath\n                TaskState = $Task.State.value__\n            }\n        }\n    }\n\n    return $ResultSet\n}\n\n#-----Determine the type of query to make-----\n# are WinRM user/pass props set -- e.g. are these device props either not substiuted or blank\nIf (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like '*WINRM.USER*') -and ($WinRmPass -like '*WINRM.PASS*'))) {\n    $SessionParams.ComputerName = $Hostname\n} \nElse {\n    # yes. convert user/password into a credential string\n    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;\n    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;\n    $SessionParams.ComputerName = $Hostname\n    $SessionParams.Authentication = 'default'\n    $SessionParams.Credential = $RemoteCredential\n}\n\n#Get configured WinRM HTTPS Port if configured\nIf($WinRMHTTPSEnabled -eq $true){\n    $SessionParams.Port = $WinRMHttpsPort\n    $SessionParams.UseSSL = $true\n}\n#Get configured WinRM HTTPS Port if configured\nElseIf($WinRMHTTPEnabled -eq $true){\n    $SessionParams.Port = $WinRMHttpPort\n    $SessionParams.UseSSL = $false\n}\n#WinRM not detected as being configured, quit processing any further\nElse{\n    Write-Host \"WinRM is not detected as being enabled, please ensure winRM is configured and try again\"\n    Exit 1\n}\n\n#Attempt to get WMI results over WinRM\n$Session = New-PSSession @SessionParams\nIf($Session){\n    $Results = Invoke-Command -Session $Session -ScriptBlock $ScripBlock\n    If($Results){\n        Foreach($Result in $Results){\n            $Wildvalue = $Result.TaskName -replace '[:|\\\\|\\s|=|#]+','_'\n            Write-Host \"$Wildvalue##$($Result.TaskName)######auto.scheduled.task.name=$($Result.TaskName)&auto.scheduled.task.path=$($Result.TaskPath)&auto.scheduled.task.state=$($Result.TaskState)\"\n        }\n        Get-PSSession | Remove-PSSession\n    }\n    Exit 0\n}\nElse{\n    Write-Host \"Unable to establish remote connection\"\n    return 1\n}"}}]]></adlist>
         <schemaVersion>2</schemaVersion>
         <dataSourceType>1</dataSourceType>
         <attributes>
@@ -197,22 +198,23 @@ $SessionParams = @{
 
 $ScripBlock = {
     $ResultSet = @()
-    $Index = 0
-    $Task = Get-ScheduledTask
-    $TaskInfo = $Task | Get-ScheduledTaskInfo
-    Foreach($Item in $Task){
-        $ResultSet += [PSCustomObject]@{
-            TaskName = $TaskInfo[$Index].TaskName
-            TaskPath = $TaskInfo[$Index].TaskPath
-            LastTaskResult = $TaskInfo[$Index].LastTaskResult
-            LastRunTime = [DateTime]$TaskInfo[$Index].LastRunTime.ToUniversalTime()
-            NumberOfMissedRuns = $TaskInfo[$Index].NumberOfMissedRuns
-            TaskState = $Item.State.value__
+    $Tasks = Get-ScheduledTask
+    $TaskInfo = $Tasks | Get-ScheduledTaskInfo
+    Foreach($Task in $Tasks){
+        $Index = $TaskInfo.TaskName.IndexOf($Task.TaskName)
+        If($Index -ne -1){
+            $ResultSet += [PSCustomObject]@{
+                TaskName = $TaskInfo[$Index].TaskName
+                TaskPath = $TaskInfo[$Index].TaskPath
+                LastTaskResult = $TaskInfo[$Index].LastTaskResult
+                LastRunTime = [DateTime]$TaskInfo[$Index].LastRunTime.ToUniversalTime()
+                NumberOfMissedRuns = $TaskInfo[$Index].NumberOfMissedRuns
+                TaskState = $Task.State.value__.ToString()
+            }
         }
-        $Index++
     }
 
-    $ResultSet
+    return $ResultSet
 }
 
 #-----Determine the type of query to make-----
@@ -248,19 +250,19 @@ Else{
 #Attempt to get WMI results over WinRM
 $Session = New-PSSession @SessionParams
 If($Session){
-    $Result = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
-    If($Result){
-        Foreach($Item in $Result){
+    $Results = Invoke-Command -Session $Session -ScriptBlock $ScripBlock
+    If($Results){
+        Foreach($Result in $Results){
             
-            $Wildvalue = $Item.TaskName -replace &#39;[:|\\|\s|=|#]+&#39;,&#39;_&#39;
-            Write-Host &#34;$Wildvalue.LastTaskResult=$($Item.LastTaskResult)&#34;
-            Write-Host &#34;$Wildvalue.NumberOfMissedRuns=$($Item.NumberOfMissedRuns)&#34;
-            Write-Host &#34;$Wildvalue.State=$($Item.TaskState)&#34;
+            $Wildvalue = $Result.TaskName -replace &#39;[:|\\|\s|=|#]+&#39;,&#39;_&#39;
+            Write-Host &#34;$Wildvalue.LastTaskResult=$($Result.LastTaskResult)&#34;
+            Write-Host &#34;$Wildvalue.NumberOfMissedRuns=$($Result.NumberOfMissedRuns)&#34;
+            Write-Host &#34;$Wildvalue.State=$($Result.TaskState)&#34;
             
             #Is task currently running
-            If($Item.TaskState -eq 4){
+            If($Result.TaskState -eq &#34;4&#34;){
                 $CurrentTime = [System.DateTime]::UtcNow
-                $ElapsedRunTimeSeconds = (New-TimeSpan -Start $Item.LastRunTime -End $CurrentTime).TotalSeconds
+                $ElapsedRunTimeSeconds = (New-TimeSpan -Start $Result.LastRunTime -End $CurrentTime).TotalSeconds
                 Write-Host &#34;$Wildvalue.ElapsedRunTimeSeconds=$ElapsedRunTimeSeconds&#34;
             }
             Else{
@@ -299,7 +301,7 @@ Else{
         </attribute>
         <attribute>
             <name>__filter_0</name>
-            <value>auto.scheduled.task.name	RegexMatch	UpdateMe</value>
+            <value>auto.scheduled.task.name	RegexMatch	Logic|CreateExplorerShellUnelevatedTask</value>
             <comment>Change filter to include desired tasks</comment>
         </attribute>
         <attribute>
@@ -317,7 +319,7 @@ Else{
             <postprocessormethod>namevalue</postprocessormethod>
             <postprocessorparam>##WILDVALUE##.LastTaskResult</postprocessorparam>
             <usevalue>output</usevalue>
-            <alertexpr>!= 0 0</alertexpr>
+            <alertexpr></alertexpr>
             <alertmissing>1</alertmissing>
             <alertsubject></alertsubject>
             <alertbody></alertbody>
@@ -433,7 +435,7 @@ Else{
             <title>Current State</title>
             <originId></originId>            <verticallabel>1=Disabled,2=Queued,3=Ready,4=Running</verticallabel>
             <rigid>false</rigid>
-            <maxvalue>2.0</maxvalue>
+            <maxvalue>4.0</maxvalue>
             <minvalue>1.0</minvalue>
             <displayprio>1</displayprio>
             <timescale>1day</timescale>

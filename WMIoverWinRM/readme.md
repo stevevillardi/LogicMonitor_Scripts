@@ -18,7 +18,7 @@ Below is the current list of converted LM core modules that can be obtained thro
 - WinMemory64_WinRM - EEFZPL
 - WinOS_WinRM - NHEPAK
 - WinVolumeUsage_WinRM - 92YTW7
-- WinCPUCore*WinRM - 7REECW *(In Security Review)*
+- WinCPUCore_WinRM - 7REECW *(In Security Review)*
 - WinCPU_WinRM - 4FFRLG
 - WinLogicalDrivePerformance_WinRM - JG3W2A
 - WinPhysicalDrive_WinRM - 6CEKC7
@@ -30,6 +30,6 @@ Below is the current list of converted LM core modules that can be obtained thro
 - WinServer_WinRM - KM44RP
 - Microsot_Windows_Services_WinRM - Z4LYAN *(In Security Review)*
 - WinProcessStats_WinRM - X4KMMP *(In Security Review)*
-- Microsoft_Windows_Scheduled_Tasks_WinRM - M299XT *(In Security Review)*
+- Microsoft_Windows_Scheduled_Tasks_WinRM - AWWYX6 *(In Security Review)*
 
 **Notes:** If a customer is looking to leverage WinRM over HTTPS they must have a non self-signed cert that allows for **Server Authenticaiton** imported into the local machines certificate manager that has a CN that matches the fqdn of the local machine. Keep in mind that even if using WinRM over HTTP all authenticaion after the initial conneciton will be encrypted either way.
