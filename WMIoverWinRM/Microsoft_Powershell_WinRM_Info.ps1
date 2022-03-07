@@ -1,6 +1,6 @@
 <# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #>
 
-#######################      Active Discovery      #########################
+#######################      PropertySource      #########################
 # Purpose:
 # Author:
 #------------------------------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ If ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like '*W
 } 
 If ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like '*WINRM.HTTP.PORT*')) {
     $WinRMHttpPort = 5985
-} 
+}
 
 #Test if any WinRM ports are open
 $WinRmHttp = Test-NetConnection -ComputerName $Hostname -Port $WinRMHttpPort -InformationLevel Quiet -WarningAction SilentlyContinue

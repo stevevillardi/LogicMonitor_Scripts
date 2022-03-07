@@ -12,7 +12,7 @@ Run the following commands from an administrative PowerShell session to automati
 
 ```powershell
 #Download and run directly from PS session
-Invoke-RestMethod -Uri "https://raw.githubusercontent.com/stevevillardi/LogicMonitor_Scripts/main/Selenium%20Grid%20(Syntehtics%20Test)/Install-SeleniumGrid.ps1" -OutFile Install-SeleniumGrid.ps1
+Invoke-RestMethod -Uri "https://raw.githubusercontent.com/stevevillardi/LogicMonitor_Scripts/main/Selenium%20Grid%20(Synthetics%20Test)/Install-SeleniumGrid.ps1" -OutFile Install-SeleniumGrid.ps1
 
 ./Install-SeleniumGrid.ps1
 ```

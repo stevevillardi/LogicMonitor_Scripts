@@ -1,10 +1,17 @@
 {
     "scheduleOption": 0,
+    "metadata": {
+        "currentUuid": "ZlbzwPVKSKK9kY8UecIqhQ",
+        "originalUuid": "yYEwsG65QjmrSSexVE99fQ",
+        "authorCompanyUuid": "460e4c84-7307-4635-b0a5-6abf73e9fad8",
+        "registryVersion": "1.0.0",
+        "checksum": "ce877eb90db78210b99d10d0696bf5a4"
+    },
     "dataType": 0,
     "description": "Detected if WinRM is enabled and if HTTP or HTTPS can be used for connection.",
     "appliesTo": "winrm.user && winrm.pass || isWindows()",
     "technology": "",
-    "type": "propertyrule",
+    "type": 5,
     "params": [
         {
             "name": "linuxcmdline",
@@ -19,7 +26,7 @@
         {
             "name": "scriptgroovy",
             "comment": "",
-            "value": "<# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #>\n\n#######################      Active Discovery      #########################\n# Purpose:\n# Author:\n#------------------------------------------------------------------------------------------------------------\n# Prerequisites:\n#\n#\n#Requires -Version 3\n#------------------------------------------------------------------------------------------------------------\n# Clears the CLI of any text\nClear-Host\n# Clears memory of all previous variables\nRemove-Variable * -ErrorAction SilentlyContinue\n#------------------------------------------------------------------------------------------------------------\n# Initialize Variables\n$WmiUser = '##WMI.USER##'\n$WmiPass = '##WMI.PASS##'\n$Hostname = '##SYSTEM.HOSTNAME##'\n$WinRMHttpPort = '##WINRM.HTTP.PORT##'\n$WinRMHttpsPort = '##WINRM.HTTPS.PORT##'\n$CollectorName = hostname\n\n#Default properties\n$WinRMEnabled = $false\n$WinRMHTTPEnabled = $false\n$WinRMHTTPSEnabled = $false\n\n#Set parameters\n$WSManParams = @{\n    ErrorAction = 'SilentlyContinue'\n}\n\n#Check if custom ports are defined and if not use defaults\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like '*WINRM.HTTPS.PORT*')) {\n    $WinRMHttpsPort = 5986\n\n} \nIf ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like '*WINRM.HTTP.PORT*')) {\n    $WinRMHttpPort = 5985\n\n} \n\n\n# Resolve hostname IP/Name to FQDN for WinRM over https\n$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname\n\n#Test if any WinRM ports are open\n$WinRmHttp = Test-NetConnection -ComputerName $Hostname -Port $WinRMHttpPort -InformationLevel Quiet -WarningAction SilentlyContinue\n$WinRmHttps = Test-NetConnection -ComputerName $Hostname -Port $WinRMHttpsPort -InformationLevel Quiet -WarningAction SilentlyContinue\n\n#-----Determin the type of query to make-----\n# check to see if this is monitoring the localhost collector, as we will not need to authenticate.\nIf ($Hostname -match $CollectorName) {\n    #Do nothing\n}\n# are wmi user/pass set -- e.g. are these device props either not substiuted or blank\nElseIf (([string]::IsNullOrWhiteSpace($WmiUser) -and [string]::IsNullOrWhiteSpace($WmiPass)) -or (($WmiUser -like '*WMI.USER*') -and ($WmiPass -like '*WMI.PASS*'))) {\n    $WSManParams.ComputerName = $Hostname\n\n} \nElse {\n    # yes. convert user/password into a credential string\n    $RemotePass = ConvertTo-SecureString -String $WmiPass -AsPlainText -Force;\n    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WmiUser, $RemotePass;\n    $WSManParams.ComputerName = $Hostname\n    $WSManParams.Authentication = 'default'\n    $WSManParams.Credential = $RemoteCredential\n}\n\n#Test WinRM over HTTPS\nIf($WinRmHttps){\n    $WSManParams.UseSSL = $true\n    $WSManParams.Port = $WinRMHttpsPort\n\n    If(Test-WSMan @WSManParams){\n        $WinRMEnabled = $true\n        $WinRMHTTPSEnabled = $true\n        Write-Host \"auto.winrm.https.port=$WinRMHttpsPort\"\n    }  \n}\n\n#Test WinRM over HTTP\nIf($WinRmHttp){\n    $WSManParams.UseSSL = $false\n    $WSManParams.Port = $WinRMHttpPort\n\n    If(Test-WSMan @WSManParams){\n        $WinRMEnabled = $true\n        $WinRMHTTPEnabled = $true\n        Write-Host \"auto.winrm.http.port=$WinRMHttpPort\"\n    }\n}\n\nWrite-Host \"auto.winrm.http.enabled=$WinRMHTTPEnabled\"\nWrite-Host \"auto.winrm.https.enabled=$WinRMHTTPSEnabled\"\nWrite-Host \"auto.winrm.enabled=$WinRMEnabled\"\nExit 0"
+            "value": "<# © 2007-2020 - LogicMonitor, Inc.  All rights reserved. #>\n\n#######################      Active Discovery      #########################\n# Purpose:\n# Author:\n#------------------------------------------------------------------------------------------------------------\n# Prerequisites:\n#\n#\n#Requires -Version 3\n#------------------------------------------------------------------------------------------------------------\n# Clears the CLI of any text\nClear-Host\n# Clears memory of all previous variables\nRemove-Variable * -ErrorAction SilentlyContinue\n#------------------------------------------------------------------------------------------------------------\n# Initialize Variables\n$WinRmUser = '##WINRM.USER##'\n$WinRmPass = '##WINRM.PASS##'\n$Hostname = '##SYSTEM.HOSTNAME##'\n$WinRMHttpPort = '##WINRM.HTTP.PORT##'\n$WinRMHttpsPort = '##WINRM.HTTPS.PORT##'\n$CollectorName = hostname\n\n#Default properties\n$WinRMEnabled = $false\n$WinRMHTTPEnabled = $false\n$WinRMHTTPSEnabled = $false\n\n# Resolve hostname IP/Name to FQDN for WinRM over https\n$Hostname = [System.Net.Dns]::GetHostEntry($Hostname).Hostname\n\n#Set parameters\n$WSManParams = @{\n    ErrorAction = 'SilentlyContinue'\n    ComputerName = $Hostname\n}\n\n#Check if custom ports are defined and if not use defaults\nIf ([string]::IsNullOrWhiteSpace($WinRMHttpsPort) -or ($WinRMHttpsPort -like '*WINRM.HTTPS.PORT*')) {\n    $WinRMHttpsPort = 5986\n} \nIf ([string]::IsNullOrWhiteSpace($WinRMHttpPort) -or ($WinRMHttpPort -like '*WINRM.HTTP.PORT*')) {\n    $WinRMHttpPort = 5985\n} \n\n#Test if any WinRM ports are open\n$WinRmHttp = Test-NetConnection -ComputerName $Hostname -Port $WinRMHttpPort -InformationLevel Quiet -WarningAction SilentlyContinue\n$WinRmHttps = Test-NetConnection -ComputerName $Hostname -Port $WinRMHttpsPort -InformationLevel Quiet -WarningAction SilentlyContinue\n\n#-----Determine the type of query to make-----\n# are WinRM user/pass set -- e.g. are these device props either not substiuted or blank\nIf (([string]::IsNullOrWhiteSpace($WinRmUser) -and [string]::IsNullOrWhiteSpace($WinRmPass)) -or (($WinRmUser -like '*WINRM.USER*') -and ($WinRmPass -like '*WINRM.PASS*'))) {\n    $WSManParams.ComputerName = $Hostname\n\n} \nElse {\n    # yes. convert user/password into a credential string\n    $RemotePass = ConvertTo-SecureString -String $WinRmPass -AsPlainText -Force;\n    $RemoteCredential = New-Object -typename System.Management.Automation.PSCredential -argumentlist $WinRmUser, $RemotePass;\n    $WSManParams.ComputerName = $Hostname\n    $WSManParams.Authentication = 'default'\n    $WSManParams.Credential = $RemoteCredential\n}\n\n#Test WinRM over HTTPS\nIf($WinRmHttps){\n    $WSManParams.UseSSL = $true\n    $WSManParams.Port = $WinRMHttpsPort\n\n    If(Test-WSMan @WSManParams){\n        $WinRMEnabled = $true\n        $WinRMHTTPSEnabled = $true\n        Write-Host \"auto.winrm.https.port=$WinRMHttpsPort\"\n    }  \n}\n\n#Test WinRM over HTTP\nIf($WinRmHttp){\n    $WSManParams.UseSSL = $false\n    $WSManParams.Port = $WinRMHttpPort\n\n    If(Test-WSMan @WSManParams){\n        $WinRMEnabled = $true\n        $WinRMHTTPEnabled = $true\n        Write-Host \"auto.winrm.http.port=$WinRMHttpPort\"\n    }\n}\n\nWrite-Host \"auto.winrm.http.enabled=$WinRMHTTPEnabled\"\nWrite-Host \"auto.winrm.https.enabled=$WinRMHTTPSEnabled\"\nWrite-Host \"auto.winrm.enabled=$WinRMEnabled\"\nExit 0"
         },
         {
             "name": "scripttype",
@@ -37,10 +44,10 @@
             "value": ""
         }
     ],
-    "version": 1642106864,
+    "version": 1645823275,
     "tags": "",
     "auditVersion": 0,
     "name": "Microsoft_Powershell_WinRM_Info",
-    "id": 215,
+    "id": 231,
     "group": ""
 }
