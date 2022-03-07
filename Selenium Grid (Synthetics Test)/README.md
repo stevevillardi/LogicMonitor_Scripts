@@ -113,11 +113,20 @@ $ docker run -d --net grid --name selenium-edge -e SE_EVENT_BUS_HOST=selenium-hu
 ## Step 6: Add Selenium GRID URL to collector configuration
 
 1. Ensure you collector is on EA 30.104 or higher
-2. Edit the collector wrapper.conf configuraiton and set your GRID url:
+2. Edit the collector wrapper.conf configuraiton and set your GRID url plus any other configuration settings:
 
 ```
 Example:
 synthetics.selenium.environment.grid.url=http://172.31.18.161:4444
+
+#I recomend these additional settings for all deployements to allow for easier troubleshooting and to ensure playback is as consistent as it is through the IDE.
+synthetics.selenium.command.implicitWait.timeout=3000
+synthetics.selenium.test.saveScreenshotOnFailure=true
+synthetics.selenium.test.saveSourceOnFailure=true
+
+#If using the automated windows scheduled task it is recomened to set these additional configuration items to ensure websites playback as expected
+synthetics.selenium.environment.browser.chrome.windowSize=1920x1055
+synthetics.selenium.environment.browser.chrome.headless=true
 ```
 
 3. Restart collector service
