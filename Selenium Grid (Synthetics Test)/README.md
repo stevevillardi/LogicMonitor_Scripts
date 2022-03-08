@@ -125,7 +125,7 @@ synthetics.selenium.test.saveScreenshotOnFailure=true
 synthetics.selenium.test.saveSourceOnFailure=true
 
 #If using the automated windows scheduled task it is recomened to set these additional configuration items to ensure websites playback as expected
-synthetics.selenium.environment.browser.chrome.windowSize=1920x1055
+synthetics.selenium.environment.browser.chrome.windowSize=1920x1200
 synthetics.selenium.environment.browser.chrome.headless=true
 ```
 
@@ -140,3 +140,26 @@ synthetics.selenium.environment.browser.chrome.headless=true
 4. Select which tests you wish to import to LM
 5. Choose the polling interval and select which collectors to use for the test. Only collectors with valid **synthetics.selenium.environment.grid.url** configurations will show in this list
 6. Set any Authentication type and finish the creation wizard
+
+#### Important Note (Session 0 Isolation): 
+Due to changes in Windows Server 2008 and later, programs running as a window service or scheduled tasks started via a service account that is not currently logged into the server at time of execution will run under what is called Session 0 isolation. The result of this means lack of access to UI controls. For selenium that means you will not see browser tasks executing within the users desktop session and screen resolution will be limited to around 1024x768 which can cause issues with some websites playback ability. The 2 work arounds I have found to address the issue are:
+
+1. (Recommended) Run selenium in headless mode to avoid requiring GUI controls and set the required screen resolution either in your selenium side file or via the collector config file options: 
+```
+synthetics.selenium.environment.browser.chrome.windowSize=1920x1200
+synthetics.selenium.environment.browser.chrome.headless=true`
+```
+###### Pros: 
+- Easiest to implement
+- Requires no changes to the grid server.
+###### Cons: 
+- Causes the browser UserAgent to report as HeadlessChrome instead of Chrome which can cause issues for some websites looking for specific UserAgents
+
+2. Modify your windows scheduled task so that it runs under a service account and that the task only runs if the user is logged in. You will also need to make sure the trigger for the task is switched from 'At system startup' to 'At log on' for the user account running the task. The downside to this option is you lose the automated startup since you will need to login as the service account after each reboot.
+
+###### Pros: 
+- Allows you to see the executions happen just like if you were running them from the IDE, which helps for troubleshooting
+- Does not change the existing playback behavior or UserAgent
+###### Cons:
+- Requires server side changes to existing setup
+- Removes automatic startup functionality currently present since the service account must login for selenium to be started.
