@@ -48,46 +48,46 @@ Open the Group Policy Management:
 - Select **Allow The Connection**
 - Click **Finish**
 
-### WMI Namespace
+### WMI Namespace Permissions (Auto and Manual)
 
 These settings can not be done with a regular GPO. _For a user who is not Admin this step is critical and must be done exactly as instructed below_. If not properly done, login attempts via WMI results in Access Denied.
 
-### GPO Startup Script
+- ### GPO Startup Script - Automatic
 
-To set these settings via GPO you can use the following PS script (https://github.com/stevevillardi/LogicMonitor_Scripts/blob/main/WMI%20Permissions/Set-WmiNamespaceSecurity.ps1) as a startup script GPO task:
+    To set these settings via GPO you can use the following PS script (https://github.com/stevevillardi/LogicMonitor_Scripts/blob/main/WMI%20Permissions/Set-WmiNamespaceSecurity.ps1) as a startup script GPO task:
 
-- Right-click **WMI Access** (the GPO we just created), select **Edit**
-- Go to **Computer Configuration -> Policies -> Windows Settings -> Scripts**
-- In the right pane, click on Startup. Right click on it
-- Choose **Properties**
-- Click **Add**
-- Click **Browse**, navigate to the script **Set-WmiNamesapceSecurity.ps1**
-- Enter the following script parameters (replace **wmiuser** with your username):
+    - Right-click **WMI Access** (the GPO we just created), select **Edit**
+    - Go to **Computer Configuration -> Policies -> Windows Settings -> Scripts**
+    - In the right pane, click on Startup. Right click on it
+    - Choose **Properties**
+    - Click **Add**
+    - Click **Browse**, navigate to the script **Set-WmiNamesapceSecurity.ps1**
+    - Enter the following script parameters (replace **wmiuser** with your username):
 
-```powershell
-Set-WmiNamespaceSecurity root/cimv2 add wmiuser MethodExecute,Enable,RemoteAccess,ReadSecurity
-```
+    ```powershell
+    Set-WmiNamespaceSecurity root/cimv2 add wmiuser MethodExecute,Enable,RemoteAccess,ReadSecurity
+    ```
 
-- Click **Ok** x2
+    - Click **Ok** x2
 
-### Manually
+    ### Individual Server - Manually
 
-To perform these steps manually on a server to be monitored via LogicMonitor, perform the following steps:
+    To perform these steps manually on a server to be monitored via LogicMonitor, perform the following steps:
 
-- Write **wmimgmt.msc** in command prompt
-- Right-click **WMI Control**, and select **Properties**
-- Select the **Security** tab
-- Select **Root** of the tree and click on **Security**
-- Click **Add …**
-- Under **Enter the object names to select:** Enter**wmiuser** and click **Check Names**. The user is now filled in automatically
-- Click **OK**
-- Select **wmiuser (wmiuser@contoso.local)**
-- Select **Allow**for**Execute Methods, Enable Account, Remote Enable and Read Security** under **Permissions** for wmiuser
-- Mark wmiuser and click **Advanced**
-- Under the Permission tab: Select **wmiuser**
-- Click **Edit**
-- Under **Applies To-**list: Choose **This namespace and all subnamespaces**. _It is very important that the rights are applied recursively down the entire tree!_
-- Click **OK** x4
+    - Write **wmimgmt.msc** in command prompt
+    - Right-click **WMI Control**, and select **Properties**
+    - Select the **Security** tab
+    - Select **Root** of the tree and click on **Security**
+    - Click **Add …**
+    - Under **Enter the object names to select:** Enter**wmiuser** and click **Check Names**. The user is now filled in automatically
+    - Click **OK**
+    - Select **wmiuser (wmiuser@contoso.local)**
+    - Select **Allow**for**Execute Methods, Enable Account, Remote Enable and Read Security** under **Permissions** for wmiuser
+    - Mark wmiuser and click **Advanced**
+    - Under the Permission tab: Select **wmiuser**
+    - Click **Edit**
+    - Under **Applies To-**list: Choose **This namespace and all subnamespaces**. _It is very important that the rights are applied recursively down the entire tree!_
+    - Click **OK** x4
 
 # Second – Settings done on each machine
 
