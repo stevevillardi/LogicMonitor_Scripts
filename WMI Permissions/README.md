@@ -21,32 +21,7 @@ Open the Group Policy Management:
 
 ## 2 – Settings GPO
 
-### DCOM
-
-- Right-click **WMI Access** (which is the GPO we just created), select Edit
-- Go to Computer **Configuration -> Policies -> Windows Settings -> Security Settings -> Local Policies -> Security Options**
-- Select Properties at: **DCOM: Machine Access Restrictions in Security Descriptor Definition Language (SDDL) syntax**
-- Check the **Define this policy setting**
-- Select **Edit Security …**
-- Click **Add …**
-- Under **Enter the object names to select:** Enter **wmiuser** and click **Check Names**. The user is now filled in automatically
-- Click **OK**
-- Select **wmiuser (wmiuser@contoso.local)**
-- Under **Permissions**: Tick **Allow** on both **Local Access** and **Remote Access**
-- Click **OK**
-- Click **OK**
-- Select Properties under: **DCOM: Machine Launch Restrictions in Security Descriptor Definition Language (SDDL) syntax**
-- Check **Define this policy setting**
-- Select **Edit Security …**
-- Click **Add …**
-- Under **Enter the object names to select:** Enter **wmiuser** and click **Check Names**. The user is now filled in automatically
-- Click **OK**
-- Select **wmiuser (wmiuser@contoso.local)**
-- Under **Permissions**: Tick **Allow** at **Local Launch, Remote Launch, Local Activation** and **Remote Activation**
-- Click **OK**
-- Click **OK**
-
-### Perfomance Monitor Users and Performance Log Users Groups
+### Perfomance Monitor Users, Event Log Readers Groups and Distributed COM Users
 
 - Right-click **WMI Access** (which is the GPO we just created), select Edit
 - Go to Computer **Configuration -> Preferences -> Control Panel Settings -> Local Users and Groups**
@@ -58,7 +33,7 @@ Open the Group Policy Management:
 - Make sure the Action is set to **Add to this group**
 - Click **OK**
 - Click **OK**
-- Repeat these steps for the **Performance Log Users (built-in)** local group
+- Repeat these steps for the **Event Log Readers (built-in) and Distributed COM Users (built-in)** local groups
 
 ### Firewall
 
@@ -179,3 +154,5 @@ HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\system\Loc
 ```
 
 - Close regedit
+
+#### Note: It is recommended that you test these steps and ensure they will work for your environment. This is not an offical LogicMonitor repository and is simply to be used as guidance.
