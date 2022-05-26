@@ -113,7 +113,7 @@ $ docker run -d --net grid --name selenium-edge -e SE_EVENT_BUS_HOST=selenium-hu
 ## Step 6: Add Selenium GRID URL to collector configuration
 
 1. Ensure you collector is on EA 30.104 or higher
-2. Edit the collector wrapper.conf configuraiton and set your GRID url plus any other configuration settings:
+2. Edit the collector agent.conf configuraiton and set your GRID url plus any other configuration settings:
 
 ```
 Example:
